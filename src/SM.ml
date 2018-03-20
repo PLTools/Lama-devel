@@ -28,20 +28,7 @@ type config = int list * Stmt.config
    Takes an environment, a configuration and a program, and returns a configuration as a result. The
    environment is used to locate a label to jump to (via method env#labeled <label_name>)
 *)                         
-let rec eval env ((stack, ((st, i, o) as c)) as conf) = function
-| [] -> conf
-| insn :: prg' ->
-   (match insn with
-    | BINOP op    -> let y::x::stack' = stack in eval env (Expr.to_func op x y :: stack', c) prg'
-    | READ        -> let z::i' = i     in eval env (z::stack, (st, i', o)) prg'
-    | WRITE       -> let z::stack' = stack in eval env (stack', (st, i, o @ [z])) prg'
-    | CONST i     -> eval env (i::stack, c) prg'
-    | LD x        -> eval env (st x :: stack, c) prg'
-    | ST x        -> let z::stack' = stack in eval env (stack', (Expr.update x z st, i, o)) prg'
-    | LABEL _     -> eval env conf prg'
-    | JMP   l     -> eval env conf (env#labeled l)
-    | CJMP (c, l) -> let x::stack' = stack in eval env conf (if (c = "z" && x = 0) || (c = "nz" && x <> 0) then env#labeled l else prg')
-   ) 
+let rec eval env conf prog = failwith "Not yet implemented"
 
 (* Top-level evaluation
 
@@ -66,44 +53,4 @@ let run p i =
    Takes a program in the source language and returns an equivalent program for the
    stack machine
 *)
-let compile p =
-  let rec expr = function
-  | Expr.Var   x          -> [LD x]
-  | Expr.Const n          -> [CONST n]
-  | Expr.Binop (op, x, y) -> expr x @ expr y @ [BINOP op]
-  in
-  let rec compile' l env = function  
-  | Stmt.Read    x          -> env, false, [READ; ST x]
-  | Stmt.Write   e          -> env, false, expr e @ [WRITE]
-  | Stmt.Assign (x, e)      -> env, false, expr e @ [ST x]
-  | Stmt.Skip               -> env, false, []
-
-  | Stmt.Seq    (s1, s2)    -> let l2, env = env#get_label in
-                               let env, flag1, s1 = compile' l2 env s1 in
-                               let env, flag2, s2 = compile' l  env s2 in
-                               env, flag2, s1 @ (if flag1 then [LABEL l2] else []) @ s2                                      
-
-  | Stmt.If     (c, s1, s2) -> let l2, env = env#get_label in
-                               let env, flag1, s1 = compile' l env s1 in
-                               let env, flag2, s2 = compile' l env s2 in
-                               env, true, expr c @ [CJMP ("z", l2)] @ s1 @ (if flag1 then [] else [JMP l]) @ [LABEL l2] @ s2 @ (if flag2 then [] else [JMP l]) 
-                               
-  | Stmt.While  (c, s)      -> let loop, env = env#get_label in
-                               let cond, env = env#get_label in
-                               let env, _, s = compile' cond env s in
-                               env, false, [JMP cond; LABEL loop] @ s @ [LABEL cond] @ expr c @ [CJMP ("nz", loop)]
-                                                                                                  
-  | Stmt.Repeat (s, c)      -> let loop , env = env#get_label in
-                               let check, env = env#get_label in
-                               let env  , flag, body = compile' check env s in
-                               env, false, [LABEL loop] @ body @ (if flag then [LABEL check] else []) @ (expr c) @ [CJMP ("z", loop)]
-  in
-  let env =
-    object
-      val label = 0
-      method get_label = "L_" ^ string_of_int label, {< label = label + 1 >}
-    end
-  in
-  let lend, env = env#get_label in
-  let _, flag, code = compile' lend env p in
-  if flag then code @ [LABEL lend] else code
+let compile p = failwith "Not yet implemented"
