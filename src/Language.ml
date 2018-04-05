@@ -74,39 +74,7 @@ module Expr =
        which takes an environment (of the same type), a name of the function, a list of actual parameters and a configuration, 
        an returns a pair: the return value for the call and the resulting configuration
     *)                                                       
-    let to_func op =
-      let bti   = function true -> 1 | _ -> 0 in
-      let itb b = b <> 0 in
-      let (|>) f g   = fun x y -> f (g x y) in
-      match op with
-      | "+"  -> (+)
-      | "-"  -> (-)
-      | "*"  -> ( * )
-      | "/"  -> (/)
-      | "%"  -> (mod)
-      | "<"  -> bti |> (< )
-      | "<=" -> bti |> (<=)
-      | ">"  -> bti |> (> )
-      | ">=" -> bti |> (>=)
-      | "==" -> bti |> (= )
-      | "!=" -> bti |> (<>)
-      | "&&" -> fun x y -> bti (itb x && itb y)
-      | "!!" -> fun x y -> bti (itb x || itb y)
-      | _    -> failwith (Printf.sprintf "Unknown binary operator %s" op)    
-    
-    let rec eval env ((st, i, o, r) as conf) expr =
-      match expr with
-      | Const n -> (st, i, o, Some n)
-      | Var   x -> (st, i, o, Some (State.eval st x))
-      | Binop (op, x, y) ->
-         let (_, _, _, Some x) as conf = eval env conf x in
-         let (st, i, o, Some y) as conf = eval env conf y in
-         (st, i, o, Some (to_func op x y))
-      | Call (f, args) ->
-         let args, conf =
-           List.fold_left (fun (acc, conf) e -> let (_, _, _, Some v) as conf = eval env conf e in v::acc, conf) ([], conf) args
-         in
-         env#definition env f (List.rev args) conf
+    let rec eval env ((st, i, o, r) as conf) expr = failwith "Not implemented"
          
     (* Expression parser. You can use the following terminals:
 
@@ -114,26 +82,7 @@ module Expr =
          DECIMAL --- a decimal constant [0-9]+ as a string                                                                                                                  
     *)
     ostap (                                      
-      parse:
-	  !(Ostap.Util.expr 
-             (fun x -> x)
-	     (Array.map (fun (a, s) -> a, 
-                           List.map  (fun s -> ostap(- $(s)), (fun x y -> Binop (s, x, y))) s
-                        ) 
-              [|                
-		`Lefta, ["!!"];
-		`Lefta, ["&&"];
-		`Nona , ["=="; "!="; "<="; "<"; ">="; ">"];
-		`Lefta, ["+" ; "-"];
-		`Lefta, ["*" ; "/"; "%"];
-              |] 
-	     )
-	     primary);
-      
-      primary:
-        n:DECIMAL                                                                      {Const n}          
-      | x:IDENT s:("(" args:!(Util.list0)[parse] ")" {Call (x, args)} | empty {Var x}) {s}
-      | -"(" parse -")"
+      parse: empty {failwith "Not implemented"}
     )
     
   end
@@ -162,54 +111,11 @@ module Stmt =
        Takes an environment, a configuration and a statement, and returns another configuration. The 
        environment is the same as for expressions
     *)
-    let rec eval env ((st, i, o, r) as conf) k stmt =
-      let seq x = function Skip -> x | y -> Seq (x, y) in
-      match stmt with
-      | Read    x          -> eval env (match i with z::i' -> (State.update x z st, i', o, r) | _ -> failwith "Unexpected end of input") Skip k
-      | Write   e          -> eval env (let (st, i, o, Some v) = Expr.eval env conf e in (st, i, o @ [v], r)) Skip k
-      | Assign (x, e)      -> eval env (let (st, i, o, Some v) = Expr.eval env conf e in (State.update x v st, i, o, r)) Skip k
-      | Seq    (s1, s2)    -> eval env conf (seq s2 k) s1
-      | Skip               -> (match k with Skip -> conf | _ -> eval env conf Skip k)
-      | If     (e, s1, s2) -> let (_, _, _, Some v) as conf = Expr.eval env conf e in eval env conf k (if v <> 0 then s1 else s2) 
-      | While  (e, s)      -> let (_, _, _, Some v) as conf = Expr.eval env conf e in
-                              if v = 0
-                              then eval env conf Skip k
-                              else eval env conf (seq stmt k) s
-      | Repeat (s, e)      -> eval env conf (seq (While (Expr.Binop ("==", e, Expr.Const 0), s)) k) s
-      | Return  e          -> (match e with None -> (st, i, o, None) | Some e -> Expr.eval env conf e)
-      | Call   (f, args)   -> eval env (Expr.eval env conf (Expr.Call (f, args))) k Skip
+    let rec eval env ((st, i, o, r) as conf) k stmt = failwith "Not implemented"
          
     (* Statement parser *)
     ostap (
-      parse:
-        s:stmt ";" ss:parse {Seq (s, ss)}
-      | stmt;
-      stmt:
-        %"read"  "(" x:IDENT ")"         {Read x}
-      | %"write" "(" e:!(Expr.parse) ")" {Write e}
-      | %"skip"                          {Skip}
-      | %"if" e:!(Expr.parse)
-	  %"then" the:parse 
-          elif:(%"elif" !(Expr.parse) %"then" parse)*
-	  els:(%"else" parse)? 
-        %"fi" {
-          If (e, the, 
-	         List.fold_right 
-		   (fun (e, t) elif -> If (e, t, elif)) 
-		   elif
-		   (match els with None -> Skip | Some s -> s)
-          )
-        }
-      | %"while" e:!(Expr.parse) %"do" s:parse %"od"{While (e, s)}
-      | %"for" i:parse "," c:!(Expr.parse) "," s:parse %"do" b:parse %"od" {
-	  Seq (i, While (c, Seq (b, s)))
-        }
-      | %"repeat" s:parse %"until" e:!(Expr.parse)  {Repeat (s, e)}
-      | %"return" e:!(Expr.parse)?                  {Return e} 
-      | x:IDENT 
-           s:(":=" e   :!(Expr.parse)                 {Assign (x, e)}    | 
-              "("  args:!(Util.list0)[Expr.parse] ")" {Call   (x, args)}
-             ) {s}
+      parse: empty {failwith "Not implemented"}
     )
       
   end
@@ -249,14 +155,14 @@ let eval (defs, body) i =
   let _, _, o, _ =
     Stmt.eval
       (object
-         method definition env f args (st, i, o, r) =                                                                      
-           let xs, locs, s      =  snd @@ M.find f m in
+         method definition env f args (st, i, o, r) =
+           let xs, locs, s      = snd @@ M.find f m in
            let st'              = List.fold_left (fun st (x, a) -> State.update x a st) (State.enter st (xs @ locs)) (List.combine xs args) in
-           let st'', i', o', r' = Stmt.eval env (st', i, o, r) Skip s in
+           let st'', i', o', r' = Stmt.eval env (st', i, o, r) Stmt.Skip s in
            (State.leave st'' st, i', o', r')
        end)
       (State.empty, i, [], None)
-      Skip
+      Stmt.Skip
       body
   in
   o
