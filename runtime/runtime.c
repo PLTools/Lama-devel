@@ -17,31 +17,34 @@
 # define TO_DATA(x) ((data*)((char*)(x)-sizeof(int)))
 # define TO_SEXP(x) ((sexp*)((char*)(x)-2*sizeof(int)))
 
+/* A structure to represent a tagged array/string */
 typedef struct {
-  int tag; 
+  int tag;          
   char contents[0];
 } data; 
 
+/* A structure to represent S-expression */
 typedef struct {
   int tag; 
   data contents; 
 } sexp; 
 
+/* Length builtin */
 extern int Blength (void *p) {
   data *a = TO_DATA(p);
   return LEN(a->tag);
 }
 
+/* Element extraction builtin */
 extern void* Belem (void *p, int i) {
   data *a = TO_DATA(p);
 
   if (TAG(a->tag) == STRING_TAG) return (void*)(int)(a->contents[i]);
-
-  //printf ("elem %d = %p\n", i, (void*) ((int*) a->contents)[i]);
   
   return (void*) ((int*) a->contents)[i];
 }
 
+/* String constructor */
 extern void* Bstring (void *p) {
   int n = strlen (p);
   data *r = (data*) malloc (n + 1 + sizeof (int));
@@ -52,6 +55,7 @@ extern void* Bstring (void *p) {
   return r->contents;
 }
 
+/* Array constructor; takes the number of elements and the elements themselves */
 extern void* Barray (int n, ...) {
   va_list args;
   int i;
@@ -71,6 +75,7 @@ extern void* Barray (int n, ...) {
   return r->contents;
 }
 
+/* S-expression constructor; takes the number of parameters; the parameters are subexpressions and the tag */
 extern void* Bsexp (int n, ...) {
   va_list args;
   int i;
@@ -83,24 +88,22 @@ extern void* Bsexp (int n, ...) {
   
   for (i=0; i<n-1; i++) {
     int ai = va_arg(args, int);
-    //printf ("arg %d = %x\n", i, ai);
     ((int*)d->contents)[i] = ai; 
   }
 
   r->tag = va_arg(args, int);
   va_end(args);
-
-  //printf ("tag %d\n", r->tag);
-  //printf ("returning %p\n", d->contents);
   
   return d->contents;
 }
 
+/* Tag checking */
 extern int Btag (void *d, int t) {
   data *r = TO_DATA(d);
   return TAG(r->tag) == SEXP_TAG && TO_SEXP(d)->tag == t;
 }
-		 
+
+/* Array store builtin; takes the number of indices, the value to store, the array, and the indices themselves */
 extern void Bsta (int n, int v, void *s, ...) {
   va_list args;
   int i, k;
@@ -119,46 +122,8 @@ extern void Bsta (int n, int v, void *s, ...) {
   if (TAG(a->tag) == STRING_TAG)((char*) s)[k] = (char) v;
   else ((int*) s)[k] = v;
 }
-
-void Lprintf (char *s, ...) {
-  va_list args;
-
-  va_start (args, s);
-  vprintf (s, args); // vprintf (char *, va_list) <-> printf (char *, ...) 
-  va_end (args);
-}
-
-void* Lstrcat (void *a, void *b) {
-  data *da = TO_DATA(a);
-  data *db = TO_DATA(b);
-  
-  data *d  = (data *) malloc (sizeof(int) + LEN(da->tag) + LEN(db->tag) + 1);
-
-  d->tag = LEN(da->tag) + LEN(db->tag);
-
-  strcpy (d->contents, da->contents);
-  strcat (d->contents, db->contents);
-
-  return d->contents;
-}
-
-void Lfprintf (FILE *f, char *s, ...) {
-  va_list args;
-
-  va_start (args, s);
-  vfprintf (f, s, args);
-  va_end (args);
-}
-
-FILE* Lfopen (char *f, char *m) {
-  return fopen (f, m);
-}
-
-void Lfclose (FILE *f) {
-  fclose (f);
-}
    
-/* Lread is an implementation of the "read" construct */
+/* Read builtin */
 extern int Lread () {
   int result;
 
@@ -169,11 +134,10 @@ extern int Lread () {
   return result;
 }
 
-/* Lwrite is an implementation of the "write" construct */
+/* Write builtin */
 extern int Lwrite (int n) {
   printf ("%d\n", n);
   fflush (stdout);
 
   return 0;
 }
-
