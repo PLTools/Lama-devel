@@ -153,13 +153,13 @@ let compile (defs, p) =
      env, true, tag @ List.flatten (List.rev code) @ [DROP]     
   and bindings p =
     let bindings =
-      fix0 (fun fself ->
       transform(Stmt.Pattern.t)
-        (object inherit [int list, (string * int list) list, _] @Stmt.Pattern.t 
-           method c_Wildcard path      = []
-           method c_Ident    path s    = [s, path] 
-           method c_Sexp     path x ps = List.concat @@ List.mapi (fun i p -> fself (path @ [i]) p) ps
-         end))
+        (fun fself ->
+            object inherit [int list, (string * int list) list, _] @Stmt.Pattern.t 
+              method c_Wildcard path _      = []
+              method c_Ident    path _ s    = [s, path] 
+              method c_Sexp     path _ x ps = List.concat @@ List.mapi (fun i p -> fself (path @ [i]) p) ps
+            end)
         []
         p
     in

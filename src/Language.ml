@@ -303,9 +303,8 @@ module Stmt =
           | "`" t:IDENT ps:(-"(" !(Util.list)[parse] -")")? {Sexp (t, match ps with None -> [] | Some ps -> ps)}
           | x:IDENT                           {Ident  x}
         )
-        
-        let vars p = fix0 (fun f  ->
-          transform(t) (object inherit [string list, _] @t[foldl] f method c_Ident s name = name::s end)) [] p 
+
+        let vars p = transform(t) (fun f -> object inherit [string list, _] @t[foldl] f method c_Ident s _ name = name::s end) [] p 
         
       end
         
