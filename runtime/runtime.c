@@ -34,6 +34,17 @@ typedef struct {
   data contents; 
 } sexp; 
 
+typedef struct {
+  size_t * begin;
+  size_t * end;
+  size_t * current;
+  size_t   size;
+} pool;
+
+static pool     from_space;
+static pool     to_space;
+size_t * current;
+
 extern void* alloc (size_t);
 
 extern int Blength (void *p) {
@@ -243,6 +254,13 @@ extern void* Bsexp (int n, ...) {
 #endif
   r = (sexp*) alloc (sizeof(int) * (n+1));
   d = &(r->contents);
+#ifdef DEBUG_PRINT
+  printf ("r = %x, *r = %x, r->tag = %d, &(r->tag) = %x\n",
+	  r, *r, r->tag, &(r->tag));
+  printf ("from_space.begin = %x, from_space.end = %x, from_space.current = %x\n",
+	  from_space.begin, from_space.end, from_space.current);
+  fflush (stdout);
+#endif
   r->tag = 0;
     
   d->tag = SEXP_TAG | ((n-1) << 3);
@@ -420,19 +438,23 @@ extern void __gc_root_scan_stack ();
 /*           Mark-and-copy                  */
 /* ======================================== */
 
-static size_t SPACE_SIZE = 128;
+// static size_t SPACE_SIZE = 128;
+// static size_t SPACE_SIZE = 1280;
+// static size_t SPACE_SIZE = 4096;
+static size_t SPACE_SIZE = 12;
+
 # define POOL_SIZE (2*SPACE_SIZE)
 
-typedef struct {
-  size_t * begin;
-  size_t * end;
-  size_t * current;
-  size_t   size;
-} pool;
+/* typedef struct { */
+/*   size_t * begin; */
+/*   size_t * end; */
+/*   size_t * current; */
+/*   size_t   size; */
+/* } pool; */
 
-static pool     from_space;
-static pool     to_space;
-size_t * current;
+/* static pool     from_space; */
+/* static pool     to_space; */
+/* size_t * current; */
 
 static void swap (size_t ** a, size_t ** b) {
   size_t * t = *a;
@@ -482,8 +504,11 @@ static void copy_elements (size_t *where, size_t *from, int len) {
 }
 
 static void extend_spaces (void) {
-  void *p1 = mremap(from_space.begin, SPACE_SIZE, 2*SPACE_SIZE, 0);
-  void *p2 = mremap(to_space.begin  , SPACE_SIZE, 2*SPACE_SIZE, 0);
+  void *p1 = mremap(from_space.begin, SPACE_SIZE * sizeof(size_t), 2*SPACE_SIZE * sizeof(size_t), 0);
+  void *p2 = mremap(to_space.begin  , SPACE_SIZE * sizeof(size_t), 2*SPACE_SIZE * sizeof(size_t), 0);
+  // exit (90);
+  /* void * p1 = realloc (from_space.begin, 2*SPACE_SIZE * sizeof(size_t)); */
+  /* void * p2 = realloc (to_space.begin  , 2*SPACE_SIZE * sizeof(size_t)); */
   if (p1   == MAP_FAILED || p2 == MAP_FAILED) {
     perror("EROOR: extend_spaces: mmap failed\n");
     exit (1);
@@ -617,10 +642,12 @@ extern void gc_root_scan_data (void) {
 }
 
 extern void init_pool (void) {
-  from_space.begin = mmap(NULL, SPACE_SIZE, PROT_READ | PROT_WRITE,
-			  MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
-  to_space.begin   = mmap(NULL, SPACE_SIZE, PROT_READ | PROT_WRITE,
-			  MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
+  from_space.begin = mmap(NULL, SPACE_SIZE * sizeof(size_t), PROT_READ | PROT_WRITE,
+  			  MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
+  to_space.begin   = mmap(NULL, SPACE_SIZE * sizeof(size_t), PROT_READ | PROT_WRITE,
+  			  MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
+  /* from_space.begin = malloc (SPACE_SIZE * sizeof(size_t)); */
+  /* to_space.begin   = malloc (SPACE_SIZE * sizeof(size_t)); */
   if (to_space.begin   == MAP_FAILED ||
       from_space.begin == MAP_FAILED) {
     perror("EROOR: init_pool: mmap failed\n");
