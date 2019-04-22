@@ -9,6 +9,23 @@
 # include <assert.h>
 
 // # define DEBUG_PRINT 1
+/* GC pool structure and data; declared here in order to allow debug print */
+typedef struct {
+  size_t * begin;
+  size_t * end;
+  size_t * current;
+  size_t   size;
+} pool;
+
+static pool from_space;
+static pool to_space;
+size_t      *current;
+/* end */
+
+/* GC extern invariant for built-in functions */
+extern void __pre_gc ();
+extern void __post_gc ();
+/* end */
 
 # define STRING_TAG 0x00000001
 # define ARRAY_TAG  0x00000003
@@ -20,8 +37,8 @@
 # define TO_DATA(x) ((data*)((char*)(x)-sizeof(int)))
 # define TO_SEXP(x) ((sexp*)((char*)(x)-2*sizeof(int)))
 
-# define UNBOXED(x) (((int) (x)) & 0x0001)
-# define UNBOX(x)   (((int) (x)) >> 1)
+# define UNBOXED(x) ( ((int) (x)) & 0x0001)
+# define UNBOX(x)   ( ((int) (x)) >> 1)
 # define BOX(x)     ((((int) (x)) << 1) | 0x0001)
 
 typedef struct {
@@ -34,21 +51,10 @@ typedef struct {
   data contents; 
 } sexp; 
 
-typedef struct {
-  size_t * begin;
-  size_t * end;
-  size_t * current;
-  size_t   size;
-} pool;
-
-static pool     from_space;
-static pool     to_space;
-size_t * current;
-
 extern void* alloc (size_t);
 
 extern int Blength (void *p) {
-  data *a = (char*) BOX (NULL);
+  data *a = (data*) BOX (NULL);
   a = TO_DATA(p);
   return BOX(LEN(a->tag));
 }
@@ -56,19 +62,19 @@ extern int Blength (void *p) {
 char* de_hash (int n) {
   static char *chars = (char*) BOX (NULL);
   static char buf[6] = {0,0,0,0,0,0};
-  char *p = (char*) BOX (NULL);
+  char *p = (char *) BOX (NULL);
   chars =  "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNJPQRSTUVWXYZ";
   p = &buf[5];
 
 #ifdef DEBUG_PRINT
-  printf ("de_hash: tag: %d\n", n);
+  printf ("de_hash: tag: %d\n", n); fflush (stdout);
 #endif
   
   *p-- = 0;
 
   while (n != 0) {
 #ifdef DEBUG_PRINT
-    printf ("char: %c\n", chars [n & 0x003F]);
+    printf ("char: %c\n", chars [n & 0x003F]); fflush (stdout);
 #endif
     *p-- = chars [n & 0x003F];
     n = n >> 6;
@@ -158,13 +164,13 @@ static void printValue (void *p) {
       break;
       
     default:
-      printStringBuf ("*** invalid tag: %x ***", TAG(a->tag));
+      printStringBuf ("*** invalid tag: %p ***", TAG(a->tag));
     }
   }
 }
 
 extern void* Belem (void *p, int i) {
-  data *a = (data *)BOX(NULL);
+  data *a = (data *) BOX (NULL);
   a = TO_DATA(p);
   i = UNBOX(i);
   
@@ -193,7 +199,7 @@ extern void* Bstring (void *p) {
 }
 
 extern void* Bstringval (void *p) {
-  void *s = BOX(NULL);
+  void *s = (void *) BOX (NULL);
 
   __pre_gc () ;
   
@@ -218,8 +224,7 @@ extern void* Barray (int n, ...) {
   __pre_gc ();
   
 #ifdef DEBUG_PRINT
-  printf ("Barray: create n = %d\n", n);
-  fflush(stdout);
+  printf ("Barray: create n = %d\n", n); fflush(stdout);
 #endif
   r = (data*) alloc (sizeof(int) * (n+1));
 
@@ -244,20 +249,20 @@ extern void* Bsexp (int n, ...) {
   int     i    = BOX(0);
   int     ai   = BOX(0);
   size_t * p   = NULL;
-  sexp   *r    = (sexp*) BOX (NULL);
-  data   *d    = (sexp*) BOX (NULL);
+  sexp   *r    = (sexp *) BOX (NULL);
+  data   *d    = (data *) BOX (NULL);
 
   __pre_gc () ;
   
 #ifdef DEBUG_PRINT
-  printf("Bsexp: allocate %zu!\n",sizeof(int) * (n+1));
+  printf("Bsexp: allocate %zu!\n",sizeof(int) * (n+1)); fflush (stdout);
 #endif
   r = (sexp*) alloc (sizeof(int) * (n+1));
   d = &(r->contents);
 #ifdef DEBUG_PRINT
-  printf ("r = %x, *r = %x, r->tag = %d, &(r->tag) = %x\n",
+  printf ("r = %p, *r = %p , r->tag = %d, &(r->tag) = %p\n",
 	  r, *r, r->tag, &(r->tag));
-  printf ("from_space.begin = %x, from_space.end = %x, from_space.current = %x\n",
+  printf ("from_space.begin = %p, from_space.end = %p, from_space.current = %p\n",
 	  from_space.begin, from_space.end, from_space.current);
   fflush (stdout);
 #endif
@@ -429,9 +434,6 @@ extern int Lwrite (int n) {
 extern const size_t __gc_data_end, __gc_data_start;
 
 extern void L__gc_init ();
-extern void __pre_gc ();
-extern void __post_gc ();
-
 extern void __gc_root_scan_stack ();
 
 /* ======================================== */
@@ -439,22 +441,11 @@ extern void __gc_root_scan_stack ();
 /* ======================================== */
 
 // static size_t SPACE_SIZE = 128;
-// static size_t SPACE_SIZE = 1280;
+static size_t SPACE_SIZE = 1280;
 // static size_t SPACE_SIZE = 4096;
-static size_t SPACE_SIZE = 12;
+// static size_t SPACE_SIZE = 12;
 
 # define POOL_SIZE (2*SPACE_SIZE)
-
-/* typedef struct { */
-/*   size_t * begin; */
-/*   size_t * end; */
-/*   size_t * current; */
-/*   size_t   size; */
-/* } pool; */
-
-/* static pool     from_space; */
-/* static pool     to_space; */
-/* size_t * current; */
 
 static void swap (size_t ** a, size_t ** b) {
   size_t * t = *a;
@@ -496,7 +487,7 @@ static void copy_elements (size_t *where, size_t *from, int len) {
       p = gc_copy ((size_t*) elem);
       *where = p;
 #ifdef DEBUG_PRINT
-      printf ("copy_elements: fix %x: %x\n", from, *where);
+      printf ("copy_elements: fix %p: %p\n", from, *where); fflush (stdout);
 #endif
       where ++;
     }
@@ -504,22 +495,23 @@ static void copy_elements (size_t *where, size_t *from, int len) {
 }
 
 static void extend_spaces (void) {
-  void *p1 = mremap(from_space.begin, SPACE_SIZE * sizeof(size_t), 2*SPACE_SIZE * sizeof(size_t), 0);
-  void *p2 = mremap(to_space.begin  , SPACE_SIZE * sizeof(size_t), 2*SPACE_SIZE * sizeof(size_t), 0);
-  // exit (90);
-  /* void * p1 = realloc (from_space.begin, 2*SPACE_SIZE * sizeof(size_t)); */
-  /* void * p2 = realloc (to_space.begin  , 2*SPACE_SIZE * sizeof(size_t)); */
-  if (p1   == MAP_FAILED || p2 == MAP_FAILED) {
+  void *p1 = (void *) BOX (NULL), *p2 = (void *) BOX (NULL);
+  size_t old_space_size = SPACE_SIZE        * sizeof(size_t),
+         new_space_size = (SPACE_SIZE << 1) * sizeof(size_t);
+  p1 = mremap(from_space.begin, old_space_size, new_space_size, 0);
+  p2 = mremap(to_space.begin  , old_space_size, new_space_size, 0);
+  if (p1 == MAP_FAILED || p2 == MAP_FAILED) {
     perror("EROOR: extend_spaces: mmap failed\n");
     exit (1);
   }
 #ifdef DEBUG_PRINT
-  printf ("extend: %x %x %x %x\n", p1, p2, from_space.begin, to_space.begin);
-  printf ("extend: %x %x %x\n", from_space.end, to_space.end, current);
+  printf ("extend: %p %p %p %p\n", p1, p2, from_space.begin, to_space.begin);
+  printf ("extend: %p %p %p\n"   , from_space.end, to_space.end, current);
+  fflush (stdout);
 #endif
   from_space.end  += SPACE_SIZE;
   to_space.end    += SPACE_SIZE;
-  SPACE_SIZE      += SPACE_SIZE;
+  SPACE_SIZE      =  SPACE_SIZE << 1;
   from_space.size =  SPACE_SIZE;
   to_space.size   =  SPACE_SIZE;
 }
@@ -533,19 +525,20 @@ extern size_t * gc_copy (size_t *obj) {
   int len1, len2, len3;
   void * objj;
   void * newobjj = (void*)current;
-  printf("gc_copy: %x cur = %x starts\n", obj, current);
+  printf ("gc_copy: %p cur = %p starts\n", obj, current);
+  fflush (stdout);
 #endif
 
   if (!IS_VALID_HEAP_POINTER(obj)) {
 #ifdef DEBUG_PRINT
-    printf ("gc_copy: invalid ptr: %x\n", obj);
+    printf ("gc_copy: invalid ptr: %p\n", obj); fflush (stdout);
 #endif
     return obj;
   }
 
   if (!IN_PASSIVE_SPACE(current) && current != to_space.end) {
 #ifdef DEBUG_PRINT
-    printf("ERROR: gc_copy: out-of-space %x %x %x\n", current, to_space.begin, to_space.end);
+    printf("ERROR: gc_copy: out-of-space %p %p %p\n", current, to_space.begin, to_space.end);
     fflush(stdout);
 #endif
     perror("ERROR: gc_copy: out-of-space\n");
@@ -554,7 +547,7 @@ extern size_t * gc_copy (size_t *obj) {
 
   if (IS_FORWARD_PTR(d->tag)) {
 #ifdef DEBUG_PRINT
-    printf ("gc_copy: IS_FORWARD_PTR: return! %x\n", (size_t *) d->tag);
+    printf ("gc_copy: IS_FORWARD_PTR: return! %p\n", (size_t *) d->tag);
     fflush(stdout);
 #endif
     return (size_t *) d->tag;
@@ -567,8 +560,7 @@ extern size_t * gc_copy (size_t *obj) {
   switch (TAG(d->tag)) {
     case ARRAY_TAG:
 #ifdef DEBUG_PRINT
-      printf ("gc_copy:array_tag; len =  %zu\n", LEN(d->tag));
-      fflush(stdout);
+      printf ("gc_copy:array_tag; len =  %zu\n", LEN(d->tag)); fflush (stdout);
 #endif
       current += (LEN(d->tag) + 1) * sizeof (int);
       *copy = d->tag;
@@ -580,8 +572,7 @@ extern size_t * gc_copy (size_t *obj) {
 
     case STRING_TAG:
 #ifdef DEBUG_PRINT
-      printf ("gc_copy:string_tag; len = %d\n", LEN(d->tag) + 1);
-      fflush(stdout);
+      printf ("gc_copy:string_tag; len = %d\n", LEN(d->tag) + 1); fflush (stdout);
 #endif
       current += LEN(d->tag) * sizeof(char) + sizeof (int);
       *copy = d->tag;
@@ -597,7 +588,8 @@ extern size_t * gc_copy (size_t *obj) {
       len1 = LEN(s->contents.tag);
       len2 = LEN(s->tag);
       len3 = LEN(d->tag);
-      printf("len1 = %li, len2=%li, len3 = %li\n",len1,len2,len3);
+      printf ("len1 = %li, len2=%li, len3 = %li\n", len1, len2, len3);
+      fflush (stdout);
 #endif
       current += (LEN(s->contents.tag) + 2) * sizeof (int);
       *copy = s->tag;
@@ -611,15 +603,14 @@ extern size_t * gc_copy (size_t *obj) {
 
   default:
 #ifdef DEBUG_PRINT
-    printf ("ERROR: gc_copy: weird tag: %x", TAG(d->tag));
-    fflush(stdout);
+    printf ("ERROR: gc_copy: weird tag: %p", TAG(d->tag)); fflush (stdout);
 #endif
     perror ("ERROR: gc_copy: weird tag");
     exit (1);
   }
 #ifdef DEBUG_PRINT
-  printf("gc_copy: %x (%x) -> %x (%x); new-current = %x\n", obj, objj, copy, newobjj, current);
-  fflush(stdout);
+  printf ("gc_copy: %p(%p) -> %p (%p); new-current = %p\n", obj, objj, copy, newobjj, current);
+  fflush (stdout);
 #endif
   return copy;
 }
@@ -627,7 +618,7 @@ extern size_t * gc_copy (size_t *obj) {
 extern void gc_test_and_copy_root (size_t ** root) {
   if (IS_VALID_HEAP_POINTER(*root)) {
 #ifdef DEBUG_PRINT
-    printf ("gc_test_and_copy_root: root %x %x\n", root, *root);
+    printf ("gc_test_and_copy_root: root %p %p\n", root, *root); fflush (stdout);
 #endif
     *root = gc_copy (*root);
   }
@@ -642,16 +633,14 @@ extern void gc_root_scan_data (void) {
 }
 
 extern void init_pool (void) {
-  from_space.begin = mmap(NULL, SPACE_SIZE * sizeof(size_t), PROT_READ | PROT_WRITE,
-  			  MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
-  to_space.begin   = mmap(NULL, SPACE_SIZE * sizeof(size_t), PROT_READ | PROT_WRITE,
-  			  MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
-  /* from_space.begin = malloc (SPACE_SIZE * sizeof(size_t)); */
-  /* to_space.begin   = malloc (SPACE_SIZE * sizeof(size_t)); */
-  if (to_space.begin   == MAP_FAILED ||
-      from_space.begin == MAP_FAILED) {
-    perror("EROOR: init_pool: mmap failed\n");
-    exit (1);
+  size_t space_size = SPACE_SIZE * sizeof(size_t);
+  from_space.begin = mmap (NULL, space_size, PROT_READ | PROT_WRITE,
+			   MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
+  to_space.begin   = mmap (NULL, space_size, PROT_READ | PROT_WRITE,
+			   MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
+  if (to_space.begin == MAP_FAILED || from_space.begin == MAP_FAILED) {
+    perror ("EROOR: init_pool: mmap failed\n");
+    exit   (1);
   }
   from_space.current = from_space.begin;
   from_space.end     = from_space.begin + SPACE_SIZE;
@@ -668,26 +657,29 @@ static int free_pool (pool * p) {
 static void * gc (size_t size) {
   current = to_space.begin;
 #ifdef DEBUG_PRINT
-  printf("\ngc: current: %x; to_space.b = %x; to_space.e = %x; f_space.b = %x; f_space.e = %x\n",
-	 current, to_space.begin, to_space.end, from_space.begin, from_space.end);
+  printf ("\ngc: current:%p; to_space.b =%p; to_space.e =%p; f_space.b = %p; f_space.e = %p\n",
+	  current, to_space.begin, to_space.end, from_space.begin, from_space.end);
+  fflush (stdout);
 #endif
-  gc_root_scan_data  ();
+  gc_root_scan_data    ();
 #ifdef DEBUG_PRINT
-  printf("gc: data is scanned\n");
+  printf ("gc: data is scanned\n"); fflush (stdout);
 #endif
   __gc_root_scan_stack ();
   if (!IN_PASSIVE_SPACE(current)) {
     perror ("ASSERT: !IN_PASSIVE_SPACE(current)\n");
-    exit (1);
+    exit   (1);
   }
 
   while (current + size >= to_space.end) {
 #ifdef DEBUG_PRINT
-    printf ("gc pre-extend_spaces : %x %x %x \n", current, size, to_space.end);
+    printf ("gc pre-extend_spaces : %p %zu %p \n", current, size, to_space.end);
+    fflush (stdout);
 #endif
     extend_spaces ();
 #ifdef DEBUG_PRINT
-    printf ("gc post-extend_spaces: %x %x %x \n", current, size, to_space.end);
+    printf ("gc post-extend_spaces: %p %zu %p \n", current, size, to_space.end);
+    fflush (stdout);
 #endif
   }
   assert (IN_PASSIVE_SPACE(current));
@@ -696,8 +688,9 @@ static void * gc (size_t size) {
   gc_swap_spaces ();
   from_space.current = current + size;
 #ifdef DEBUG_PRINT
-    printf ("gc: end: (allocate!) return %x; from_space.current %x; from_space.end \n\n",
-	    current, from_space.current, from_space.end);
+  printf ("gc: end: (allocate!) return %p; from_space.current %p; from_space.end %p \n\n",
+	  current, from_space.current, from_space.end);
+  fflush (stdout);
 #endif
   return (void *) current;
 }
@@ -706,17 +699,17 @@ extern void * alloc (size_t size) {
   void * p = (void*)BOX(NULL);
   if (from_space.current + size < from_space.end) {
 #ifdef DEBUG_PRINT
-    printf("alloc: current: %x %zu", from_space.current, size);
+    printf ("alloc: current: %p %zu", from_space.current, size); fflush (stdout);
 #endif
     p = (void*) from_space.current;
     from_space.current += size;
 #ifdef DEBUG_PRINT
-    printf(";new current: %x \n", from_space.current);
+    printf (";new current: %p \n", from_space.current); fflush (stdout);
 #endif
     return p;
   }
 #ifdef DEBUG_PRINT
-  printf("alloc: call gc: %zu\n", size);
+  printf ("alloc: call gc: %zu\n", size); fflush (stdout);
 #endif
   return gc (size);
 }
