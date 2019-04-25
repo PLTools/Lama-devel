@@ -17,9 +17,9 @@ typedef struct {
   size_t   size;
 } pool;
 
-static pool from_space;
-static pool to_space;
-size_t      *current;
+static pool   from_space;
+static pool   to_space;
+static size_t *current;
 /* end */
 
 /* GC extern invariant for built-in functions */
