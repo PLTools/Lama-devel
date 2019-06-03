@@ -188,7 +188,7 @@ let compile (defs, p) =
     let bindings =
       transform(Stmt.Pattern.t)
         (fun fself ->
-           object inherit [int list, (string * int list) list, _] @Stmt.Pattern.t 
+           object inherit [int list, _, (string * int list) list] @Stmt.Pattern.t 
              method c_Wildcard  path _      = []
              method c_Named     path _ s p  = [s, path] @ fself path p
              method c_Sexp      path _ x ps = List.concat @@ List.mapi (fun i p -> fself (path @ [i]) p) ps
