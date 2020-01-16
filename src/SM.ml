@@ -194,7 +194,7 @@ let compile (defs, p) =
     let bindings =
       transform(Pattern.t)
         (fun fself ->
-           object inherit [int list, (string * int list) list, _] @Pattern.t 
+           object inherit [int list, _, (string * int list) list] @Pattern.t 
              method c_Wildcard  path _      = []
              method c_Named     path _ s p  = [s, path] @ fself path p
              method c_Sexp      path _ x ps = List.concat @@ List.mapi (fun i p -> fself (path @ [i]) p) ps
@@ -263,10 +263,10 @@ let compile (defs, p) =
                                add_code (compile_expr lsv env e) lsv false [CALL (".stringval", 1)]
 
   | Expr.Assign (x, e)      -> let lassn, env = env#get_label in
-                               (*(match x with
-                               | Expr.Ref x -> add_code (compile_expr lassn env e) lassn false [ST x]
-                                                   | _          ->*) add_code (compile_list lassn env [x; e]) lassn false [match x with Expr.ElemRef _ -> STA | _ -> STI]
-                               (*--) *)
+                               add_code (compile_list lassn env [x; e]) lassn false [match x with Expr.ElemRef _ -> STA | _ -> STI]
+                               (* (match x with
+                                *  | Expr.Ref x -> add_code (compile_expr lassn env e) lassn false [ST x]
+                                *  | _          -> add_code (compile_list lassn env [x; e]) lassn false [match x with Expr.ElemRef _ -> STA | _ -> STI]) *)
                              
   | Expr.Skip               -> env, false, []
 

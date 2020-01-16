@@ -9,6 +9,23 @@
 # include <assert.h>
 
 // # define DEBUG_PRINT 1
+/* GC pool structure and data; declared here in order to allow debug print */
+typedef struct {
+  size_t * begin;
+  size_t * end;
+  size_t * current;
+  size_t   size;
+} pool;
+
+static pool from_space;
+static pool to_space;
+size_t      *current;
+/* end */
+
+/* GC extern invariant for built-in functions */
+extern void __pre_gc  ();
+extern void __post_gc ();
+/* end */
 
 /* GC pool structure and data; declared here in order to allow debug print */
 typedef struct {
@@ -28,13 +45,16 @@ size_t      *current;
 # define SEXP_TAG   0x00000005
 
 # define LEN(x) ((x & 0xFFFFFFF8) >> 3)
-# define TAG(x) (x & 0x00000007)
+# define TAG(x)  (x & 0x00000007)
 
 # define TO_DATA(x) ((data*)((char*)(x)-sizeof(int)))
 # define TO_SEXP(x) ((sexp*)((char*)(x)-2*sizeof(int)))
+#ifdef DEBUG_PRINT // GET_SEXP_TAG is necessary for printing from space
+# define GET_SEXP_TAG(x) (LEN(x))
+#endif
 
-# define UNBOXED(x) (((int) (x)) & 0x0001)
-# define UNBOX(x)   (((int) (x)) >> 1)
+# define UNBOXED(x)  (((int) (x)) &  0x0001)
+# define UNBOX(x)    (((int) (x)) >> 1)
 # define BOX(x)     ((((int) (x)) << 1) | 0x0001)
 
 typedef struct {
@@ -50,7 +70,7 @@ typedef struct {
 extern void* alloc (size_t);
 
 extern int Blength (void *p) {
-  data *a = (char*) BOX (NULL);
+  data *a = (data*) BOX (NULL);
   a = TO_DATA(p);
   return BOX(LEN(a->tag));
 }
@@ -58,19 +78,19 @@ extern int Blength (void *p) {
 char* de_hash (int n) {
   static char *chars = (char*) BOX (NULL);
   static char buf[6] = {0,0,0,0,0,0};
-  char *p = (char*) BOX (NULL);
-  chars =  "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNJPQRSTUVWXYZ";
+  char *p = (char *) BOX (NULL);
+  chars =  "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
   p = &buf[5];
 
 #ifdef DEBUG_PRINT
-  printf ("de_hash: tag: %d\n", n);
+  printf ("de_hash: tag: %d\n", n); fflush (stdout);
 #endif
   
   *p-- = 0;
 
   while (n != 0) {
 #ifdef DEBUG_PRINT
-    printf ("char: %c\n", chars [n & 0x003F]);
+    printf ("char: %c\n", chars [n & 0x003F]); fflush (stdout);
 #endif
     *p-- = chars [n & 0x003F];
     n = n >> 6;
@@ -148,7 +168,11 @@ static void printValue (void *p) {
       break;
       
     case SEXP_TAG: {
+#ifndef DEBUG_PRINT
       char * tag = de_hash (TO_SEXP(p)->tag);
+#else
+      char * tag = de_hash (GET_SEXP_TAG(TO_SEXP(p)->tag));
+#endif      
       
       if (strcmp (tag, "cons") == 0) {
 	data *b = a;
@@ -180,7 +204,7 @@ static void printValue (void *p) {
       }
     }
     break;
-      
+
     default:
       printStringBuf ("*** invalid tag: %x ***", TAG(a->tag));
     }
@@ -217,7 +241,7 @@ extern void* Bstring (void *p) {
 }
 
 extern void* Bstringval (void *p) {
-  void *s = BOX(NULL);
+  void *s = (void *) BOX (NULL);
 
   __pre_gc () ;
   
@@ -242,8 +266,7 @@ extern void* Barray (int n, ...) {
   __pre_gc ();
   
 #ifdef DEBUG_PRINT
-  printf ("Barray: create n = %d\n", n);
-  fflush(stdout);
+  printf ("Barray: create n = %d\n", n); fflush(stdout);
 #endif
   r = (data*) alloc (sizeof(int) * (n+1));
 
@@ -269,12 +292,12 @@ extern void* Bsexp (int n, ...) {
   int     ai   = BOX(0);
   size_t * p   = NULL;
   sexp   *r    = (sexp*) BOX (NULL);
-  data   *d    = (sexp*) BOX (NULL);
+  data   *d    = (data *) BOX (NULL);
 
   __pre_gc () ;
   
 #ifdef DEBUG_PRINT
-  printf("Bsexp: allocate %zu!\n",sizeof(int) * (n+1));
+  printf("Bsexp: allocate %zu!\n",sizeof(int) * (n+1)); fflush (stdout);
 #endif
   r = (sexp*) alloc (sizeof(int) * (n+1));
   d = &(r->contents);
@@ -292,6 +315,11 @@ extern void* Bsexp (int n, ...) {
   }
 
   r->tag = va_arg(args, int);
+
+#ifdef DEBUG_PRINT
+  r->tag = SEXP_TAG | ((r->tag) << 3);
+#endif
+
   va_end(args);
 
   __post_gc();
@@ -300,9 +328,17 @@ extern void* Bsexp (int n, ...) {
 }
 
 extern int Btag (void *d, int t, int n) {
-  data *r = (data*) BOX (NULL);
-  r = TO_DATA(d);
-  return BOX(TAG(r->tag) == SEXP_TAG && TO_SEXP(d)->tag == t && LEN(r->tag) == n);
+  data *r = (data *) BOX (NULL);
+  if (UNBOXED(d)) return BOX(0);
+  else {
+    r = TO_DATA(d);
+#ifndef DEBUG_PRINT
+    return BOX(TAG(r->tag) == SEXP_TAG && TO_SEXP(d)->tag == t && LEN(r->tag) == n);
+#else
+    return BOX(TAG(r->tag) == SEXP_TAG &&
+	     GET_SEXP_TAG(TO_SEXP(d)->tag) == t && LEN(r->tag) == n);
+#endif
+  }
 }
 
 extern int Barray_patt (void *d, int n) {
@@ -434,7 +470,6 @@ extern int Lwrite (int n) {
 extern const size_t __gc_data_end, __gc_data_start;
 
 extern void L__gc_init ();
-
 extern void __gc_root_scan_stack ();
 
 /* ======================================== */
@@ -800,7 +835,6 @@ static void printFromSpace (void) {
 }
 #endif
 
-#ifdef __ENABLE_GC__
 extern void * alloc (size_t size) {
   void * p = (void*)BOX(NULL);
   if (from_space.current + size < from_space.end) {
@@ -823,4 +857,3 @@ extern void * alloc (size_t size) {
   init_to_space (0);
   return gc (size);
 }
-# endif

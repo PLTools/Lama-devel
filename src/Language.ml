@@ -9,9 +9,9 @@ open Ostap
 open Combinators
 
 exception Semantic_error of string
-                          
+
 let unquote s = String.sub s 1 (String.length s - 2)
-              
+
 (* Values *)
 module Value =
   struct
@@ -19,19 +19,19 @@ module Value =
     @type t =
     | Empty
     | Var    of string
-    | Elem   of t * int 
+    | Elem   of t * int
     | Int    of int
     | String of bytes
     | Array  of t array
     | Sexp   of string * t array
     with show
 
-    let to_int = function 
-    | Int n -> n 
+    let to_int = function
+    | Int n -> n
     | _ -> failwith "int value expected"
 
-    let to_string = function 
-    | String s -> s 
+    let to_string = function
+    | String s -> s
     | _ -> failwith "string value expected"
 
     let to_array = function
@@ -47,14 +47,14 @@ module Value =
     | Sexp (t, _) -> t
     | _ -> failwith "symbolic expression expected"
 
-    let update_string s i x = Bytes.set s i x; s 
+    let update_string s i x = Bytes.set s i x; s
     let update_array  a i x = a.(i) <- x; a
 
     let update_elem x i v =
       match x with
       | Sexp (_, a) | Array a -> ignore (update_array a i v)
       | String a -> ignore (update_string a i (Char.chr @@ to_int v))
-      
+
     let string_val v =
       let buf      = Buffer.create 128 in
       let append s = Buffer.add_string buf s in
@@ -70,7 +70,7 @@ module Value =
                          let rec inner_list = function
                          | [||]                    -> ()
                          | [|x; Int 0|]            -> inner x
-                         | [|x; Sexp ("cons", a)|] -> inner x; append ", "; inner_list a  
+                         | [|x; Sexp ("cons", a)|] -> inner x; append ", "; inner_list a
                          in inner_list a;
                          append "}"
                        )
@@ -82,13 +82,13 @@ module Value =
       in
       inner v;
       Bytes.of_string @@ Buffer.contents buf
-                      
+
   end
-       
+
 (* States *)
 module State =
   struct
-                                                                
+
     (* State: global state, local state, scope variables *)
     type t =
     | G of (string -> Value.t)
@@ -98,12 +98,12 @@ module State =
     let undefined x = failwith (Printf.sprintf "Undefined variable: %s" x)
 
     (* Bind a variable to a value in a state *)
-    let bind x v s = fun y -> if x = y then v else s y 
+    let bind x v s = fun y -> if x = y then v else s y
 
     (* Empty state *)
     let empty = G undefined
 
-    (* Update: non-destructively "modifies" the state s by binding the variable x 
+    (* Update: non-destructively "modifies" the state s by binding the variable x
        to value v and returns the new state w.r.t. a scope
     *)
     let update x v s =
@@ -144,13 +144,13 @@ module State =
 
     (* Drop a local scope *)
     let drop (L (_, _, e)) = e
-                               
+
   end
 
 (* Builtins *)
 module Builtin =
   struct
-      
+
     let eval (st, i, o, vs) args = function
     | "read"     -> (match i with z::i' -> (st, i', o, (Value.of_int z)::vs) | _ -> failwith "Unexpected end of input")
     | "write"    -> (st, i, o @ [Value.to_int @@ List.hd args], Value.Empty :: vs)
@@ -161,7 +161,7 @@ module Builtin =
                                 | Value.Array    a  -> a.(i)
                                 | Value.Sexp (_, a) -> a.(i)
                                ) :: vs
-                    )         
+                    )
     | ".length"     -> (st, i, o, (Value.of_int (match List.hd args with Value.Sexp (_, a) | Value.Array a -> Array.length a | Value.String s -> Bytes.length s))::vs)
     | ".array"      -> (st, i, o, (Value.of_array @@ Array.of_list args)::vs)
     | ".stringval"  -> let [a] = args in (st, i, o, (Value.of_string @@ Value.string_val a)::vs)
@@ -180,24 +180,24 @@ module Pattern =
     (* identifier       *) | Named  of string * t
     (* ground integer   *) | Const  of int
     (* ground string    *) | String of string
-    (* boxed value      *) | Boxed    
-    (* unboxed value    *) | UnBoxed  
+    (* boxed value      *) | Boxed
+    (* unboxed value    *) | UnBoxed
     (* any string value *) | StringTag
     (* any sexp value   *) | SexpTag
     (* any array value  *) | ArrayTag
     with show, foldl
 
-    (* Pattern parser *)                                 
+    (* Pattern parser *)
     ostap (
-      parse: 
-        !(Ostap.Util.expr 
+      parse:
+        !(Ostap.Util.expr
            (fun x -> x)
 	   (Array.map (fun (a, s) ->
-              a, 
-              List.map (fun s -> ostap(- $(s)), (fun x y -> Sexp ("cons", [x; y]))) s) 
-          [|`Righta, [":"]|] 
+              a,
+              List.map (fun s -> ostap(- $(s)), (fun x y -> Sexp ("cons", [x; y]))) s)
+          [|`Righta, [":"]|]
 	 )
-	 primary);          
+	 primary);
       primary:
         %"_"                                         {Wildcard}
       | t:UIDENT ps:(-"(" !(Util.list)[parse] -")")? {Sexp (t, match ps with None -> [] | Some ps -> ps)}
@@ -218,20 +218,20 @@ module Pattern =
       | -"(" parse -")"
     )
 
-    let vars p = transform(t) (fun f -> object inherit [string list, _] @t[foldl] f method c_Named s _ name p = name :: f s p end) [] p 
-        
+    let vars p = transform(t) (fun f -> object inherit [string list, _] @t[foldl] f method c_Named s _ name p = name :: f s p end) [] p
+
   end
 
 (* Simple expressions: syntax and semantics *)
 module Expr =
   struct
-    (* The type of configuration: a state, an input stream, an output stream, 
-       and a stack of values 
+    (* The type of configuration: a state, an input stream, an output stream,
+       and a stack of values
     *)
     type config = State.t * int list * int list * Value.t list
-    
-    (* The type for expressions. Note, in regular OCaml there is no "@type..." 
-       notation, it came from GT. 
+
+    (* The type for expressions. Note, in regular OCaml there is no "@type..."
+       notation, it came from GT.
     *)
     type t =
     (* integer constant           *) | Const     of int
@@ -247,7 +247,7 @@ module Expr =
     (* string conversion          *) | StringVal of t
     (* function call              *) | Call      of t * t list
     (* assignment                 *) | Assign    of t * t
-    (* composition                *) | Seq       of t * t 
+    (* composition                *) | Seq       of t * t
     (* empty statement            *) | Skip
     (* conditional                *) | If        of t * t * t
     (* loop with a pre-condition  *) | While     of t * t
@@ -256,7 +256,7 @@ module Expr =
     (* return statement           *) | Return    of t option
     (* ignore a value             *) | Ignore    of t
     (* unit value                 *) | Unit
-    (* leave a scope              *) | Leave  
+    (* leave a scope              *) | Leave
     (* intrinsic (for evaluation) *) | Intrinsic of (config -> config)
     (* control (for control flow) *) | Control   of (config -> t * config)
 
@@ -273,20 +273,20 @@ module Expr =
       match x with
       | Value.Var x       -> State.update x v st
       | Value.Elem (x, i) -> Value.update_elem x i v; st
-                             
+
     (* Expression evaluator
 
           val eval : env -> config -> k -> t -> config
 
 
-       Takes an environment, a configuration and an expresion, and returns another configuration. The 
+       Takes an environment, a configuration and an expresion, and returns another configuration. The
        environment supplies the following method
 
            method definition : env -> string -> int list -> config -> config
 
-       which takes an environment (of the same type), a name of the function, a list of actual parameters and a configuration, 
+       which takes an environment (of the same type), a name of the function, a list of actual parameters and a configuration,
        an returns a pair: the return value for the call and the resulting configuration
-    *)                                                       
+    *)
     let to_func op =
       let bti   = function true -> 1 | _ -> 0 in
       let itb b = b <> 0 in
@@ -305,14 +305,14 @@ module Expr =
       | "!=" -> bti |> (<>)
       | "&&" -> fun x y -> bti (itb x && itb y)
       | "!!" -> fun x y -> bti (itb x || itb y)
-      | _    -> failwith (Printf.sprintf "Unknown binary operator %s" op)    
+      | _    -> failwith (Printf.sprintf "Unknown binary operator %s" op)
 
-    let seq x = function Skip -> x | y -> Seq (x, y) 
+    let seq x = function Skip -> x | y -> Seq (x, y)
 
     let schedule_list h::tl =
       List.fold_left seq h tl
-      
-    let rec take = function 
+
+    let rec take = function
     | 0 -> fun rest  -> [], rest
     | n -> fun h::tl -> let tl', rest = take (n-1) tl in h :: tl', rest
 
@@ -350,7 +350,7 @@ module Expr =
       | Call (Var f, args) ->
          eval env conf k (schedule_list (args @ [Intrinsic (fun (st, i, o, vs) -> let es, vs' = take (List.length args) vs in
                                                                                   env#definition env f (List.rev es) (st, i, o, vs'))]))
-      | Leave  -> eval env (State.drop st, i, o, vs) Skip k 
+      | Leave  -> eval env (State.drop st, i, o, vs) Skip k
       | Assign (x, e)  ->
          eval env conf k (schedule_list [x; e; Intrinsic (fun (st, i, o, v::x::vs) -> (update st x v, i, o, v::vs))])
       | Seq (s1, s2) ->
@@ -380,14 +380,14 @@ module Expr =
                | Pattern.Array ps    , Value.Array vs when List.length ps = Array.length vs                -> match_list ps (Array.to_list vs) st
                | Pattern.Const n     , Value.Int n'    when n = n'                                         -> st
                | Pattern.String s    , Value.String s' when s = Bytes.to_string s'                         -> st
-               | Pattern.Boxed       , Value.String _ 
+               | Pattern.Boxed       , Value.String _
                | Pattern.Boxed       , Value.Array  _
                | Pattern.UnBoxed     , Value.Int    _
-               | Pattern.Boxed       , Value.Sexp  (_, _)                                                 
+               | Pattern.Boxed       , Value.Sexp  (_, _)
                | Pattern.StringTag   , Value.String _
-               | Pattern.ArrayTag    , Value.Array  _ 
+               | Pattern.ArrayTag    , Value.Array  _
                | Pattern.SexpTag     , Value.Sexp  (_, _)                                                  -> st
-               | _                                                                                         -> None                                                                            
+               | _                                                                                         -> None
              and match_list ps vs s =
                match ps, vs with
                | [], []       -> s
@@ -397,14 +397,14 @@ module Expr =
              match match_patt patt v (Some State.undefined) with
              | None     -> branch conf tl
              | Some st' -> eval env (State.push st st' (Pattern.vars patt), i, o, vs) k (Seq (body, Leave))
-         in                  
+         in
          eval env conf Skip (schedule_list [e; Intrinsic (fun conf -> branch conf bs)])
-                                                                       
+
     (* Expression parser. You can use the following terminals:
 
          LIDENT  --- a non-empty identifier a-z[a-zA-Z0-9_]* as a string
          UIDENT  --- a non-empty identifier A-Z[a-zA-Z0-9_]* as a string
-         DECIMAL --- a decimal constant [0-9]+ as a string                                                                                                                  
+         DECIMAL --- a decimal constant [0-9]+ as a string
     *)
 
     (* Propagates *)
@@ -417,7 +417,7 @@ module Expr =
     | _                -> raise (Semantic_error "not a destination")
 
     (* Balance values *)
-    let rec balance_value = function 
+    let rec balance_value = function
     | Array     es        -> Array     (List.map balance_value es)
     | Sexp      (s, es)   -> Sexp      (s, List.map balance_value es)
     | Binop     (o, l, r) -> Binop     (o, balance_value l, balance_value r)
@@ -431,9 +431,9 @@ module Expr =
     | If        (c, t, e) -> If        (balance_value c, balance_value t, balance_value e)
     | Case      (e, ps)   -> Case      (balance_value e, List.map (fun (p, e) -> p, balance_value e) ps)
 
-    | Return    _  
-    | While     _  
-    | Repeat    _  
+    | Return    _
+    | While     _
+    | Repeat    _
     | Skip        -> raise (Semantic_error "missing value")
 
     | e                   -> e
@@ -445,7 +445,7 @@ module Expr =
     | Repeat (s, e)    -> Repeat (balance_void s, balance_value e)
     | Return (Some e)  -> Return (Some (balance_value e))
     | Return None      -> Return None
-    | Skip             -> Skip 
+    | Skip             -> Skip
     | e                -> Ignore (balance_value e)
 
     (* ======= *)
@@ -478,16 +478,16 @@ module Expr =
             )
       in
       ostap (inner[0][id])
-        
+
     (* ======= *)
-        
+
     ostap (
       parse[infix]: h:basic[infix] t:(-";" parse[infix])? {match t with None -> h | Some t -> Seq (h, t)};
-      basic[infix]: 
-	  !(expr 
+      basic[infix]:
+	  !(expr
              (fun x -> x)
              (Array.map (fun (a, l) -> a, List.map (fun (s, f) -> ostap (- $(s)), f) l) infix)
-	     (primary infix)); 
+	     (primary infix));
       primary[infix]:
         b:base[infix] is:(-"[" i:parse[infix] -"]" {`Elem i} | -"." (%"length" {`Len} | %"string" {`Str} | f:LIDENT {`Post f})) * {
         List.fold_left
@@ -500,48 +500,48 @@ module Expr =
           )
           b
           is
-      }; 
+      };
       base[infix]:
-        n:DECIMAL                                            {Const n}  
+        n:DECIMAL                                            {Const n}
       | s:STRING                                             {String (unquote s)}
       | c:CHAR                                               {Const  (Char.code c)}
       | "[" es:!(Util.list0)[parse infix] "]"                {Array es}
       | "{" es:!(Util.list0)[parse infix] "}"                {match es with
                                                               | [] -> Const 0
-                                                              | _  -> List.fold_right (fun x acc -> Sexp ("cons", [x; acc])) es (Const 0)  
+                                                              | _  -> List.fold_right (fun x acc -> Sexp ("cons", [x; acc])) es (Const 0)
                                                              }
       | t:UIDENT args:(-"(" !(Util.list)[parse infix] -")")? {Sexp (t, match args with None -> [] | Some args -> args)}
       | x:LIDENT s:("(" args:!(Util.list0)[parse infix] ")"  {Call (Var x, args)} | empty {Var x}) {s}
 
       | %"skip"                                              {Skip}
-      
+
       | %"if" e:!(parse infix)
 	%"then" the:parse[infix]
           elif:(%"elif" parse[infix] %"then" parse[infix])*
-	  els:(%"else" parse[infix])? 
+	  els:(%"else" parse[infix])?
         %"fi" {
-          If (e, the, 
-	         List.fold_right 
-		   (fun (e, t) elif -> If (e, t, elif)) 
+          If (e, the,
+	         List.fold_right
+		   (fun (e, t) elif -> If (e, t, elif))
 		   elif
 		   (match els with None -> Skip | Some s -> s)
           )
         }
-      
+
       | %"while" e:parse[infix] %"do" s:parse[infix] %"od" {While (e, s)}
-      
+
       | %"for" i:parse[infix] "," c:parse[infix] "," s:parse[infix] %"do" b:parse[infix] %"od" {
 	  Seq (i, While (c, Seq (b, s)))
                                                                                             }
-      
-      | %"repeat" s:parse[infix] %"until" e:basic[infix]  {Repeat (s, e)}      
+
+      | %"repeat" s:parse[infix] %"until" e:basic[infix]  {Repeat (s, e)}
       | %"return" e:basic[infix]?                         {Return e}
-      
+
       | %"case" e:parse[infix] %"of" bs:!(Util.listBy)[ostap ("|")][ostap (!(Pattern.parse) -"->" parse[infix])] %"esac" {Case (e, bs)}
-      
-      | -"(" parse[infix] -")" 
+
+      | -"(" parse[infix] -")"
     )
-    
+
   end
 
 (* Infix helpers *)
@@ -549,16 +549,16 @@ module Infix =
   struct
 
     type t = ([`Lefta | `Righta | `Nona] * (string * (Expr.t -> Expr.t -> Expr.t)) list) array
-           
+
     let name infix =
       let b = Buffer.create 64 in
       Buffer.add_string b "__Infix_";
       Seq.iter (fun c -> Buffer.add_string b (string_of_int @@ Char.code c)) @@ String.to_seq infix;
       Buffer.contents b
-      
+
     let default : t =
       Array.map (fun (a, s) ->
-        a, 
+        a,
         List.map (fun s -> s,
                            (fun x y ->
                               match s with
@@ -568,19 +568,19 @@ module Infix =
                               | _    -> Expr.Binop  (s, x, y)
                            )
           ) s
-      ) 
+      )
       [|
-        `Righta, [":="];    
-        `Righta, [":"];  
+        `Righta, [":="];
+        `Righta, [":"];
 	`Lefta , ["!!"];
 	`Lefta , ["&&"];
 	`Nona  , ["=="; "!="; "<="; "<"; ">="; ">"];
 	`Lefta , ["++"; "+" ; "-"];
 	`Lefta , ["*" ; "/"; "%"];
-      |]     
+      |]
 
     exception Break of [`Ok of t | `Fail of string]
-            
+
     let find_op infix op cb ce =
       try
         Array.iteri (fun i (_, l) -> if List.exists (fun (s, _) -> s = op) l then raise (Break (cb i))) infix;
@@ -590,7 +590,7 @@ module Infix =
     let no_op op coord = `Fail (Printf.sprintf "infix ``%s'' not found in the scope at %s" op (Msg.Coord.toString coord))
 
     let sem name x y = Expr.Call (Var name, [x; y])
-                     
+
     let at coord op newp name infix =
       find_op infix op
         (fun i ->
@@ -615,7 +615,7 @@ module Infix =
                  ))
         )
         (fun _ -> no_op op coord)
-      
+
     let after coord op newp ass name infix =
       find_op infix op
         (fun i ->
@@ -628,7 +628,7 @@ module Infix =
                  ))
         )
         (fun _ -> no_op op coord)
-                                
+
   end
 
 (* Function and procedure definitions *)
@@ -645,13 +645,13 @@ module Definition =
         | f:(%"before" {Infix.before} | %"after" {Infix.after}) s:STRING {f coord (unquote s) newp ass};
       head[infix]:
         %"fun" name:LIDENT {name, infix}
-      | ass:(%"infix" {`Nona} | %"infixl" {`Lefta} | %"infixr" {`Righta}) 
-        l:$ op:(s:STRING {unquote s}) 
+      | ass:(%"infix" {`Nona} | %"infixl" {`Lefta} | %"infixr" {`Righta})
+        l:$ op:(s:STRING {unquote s})
         md:position[ass][l#coord][op] {
           let name = Infix.name op in
           match md name infix with
           | `Ok infix' -> name, infix'
-          | `Fail msg  -> raise (Semantic_error msg) 
+          | `Fail msg  -> raise (Semantic_error msg)
       };
       parse[infix]:
         <(name, infix')> : head[infix] "(" args:!(Util.list0 arg) ")"
@@ -662,11 +662,11 @@ module Definition =
     )
 
   end
-    
+
 (* The top-level definitions *)
 
 (* The top-level syntax category is a pair of definition list and statement (program body) *)
-type t = Definition.t list * Expr.t    
+type t = Definition.t list * Expr.t
 
 (* Top-level evaluator
 
@@ -676,7 +676,7 @@ type t = Definition.t list * Expr.t
 *)
 let eval (defs, body) i =
   let module M = Map.Make (String) in
-  let m          = List.fold_left (fun m ((name, _) as def) -> M.add name def m) M.empty defs in  
+  let m          = List.fold_left (fun m ((name, _) as def) -> M.add name def m) M.empty defs in
   let _, _, o, _ =
     Expr.eval
       (object
