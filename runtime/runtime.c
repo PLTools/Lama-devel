@@ -9,6 +9,7 @@
 # include <assert.h>
 
 // # define DEBUG_PRINT 1
+
 /* GC pool structure and data; declared here in order to allow debug print */
 typedef struct {
   size_t * begin;
@@ -25,19 +26,6 @@ size_t      *current;
 /* GC extern invariant for built-in functions */
 extern void __pre_gc  ();
 extern void __post_gc ();
-/* end */
-
-/* GC pool structure and data; declared here in order to allow debug print */
-typedef struct {
-  size_t * begin;
-  size_t * end;
-  size_t * current;
-  size_t   size;
-} pool;
-
-static pool from_space;
-static pool to_space;
-size_t      *current;
 /* end */
 
 # define STRING_TAG 0x00000001
