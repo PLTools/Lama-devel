@@ -1,0 +1,9 @@
+import Equal;
+
+--local x = (fun (x) {x}), y = x;
+--local x = "a", y = "a";
+if (equal (x, y)) then
+  printf ("Correct\n")
+else
+  printf ("Wrong\n")
+fi

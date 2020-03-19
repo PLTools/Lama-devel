@@ -40,15 +40,15 @@ public fun equal (x, y) {
             Some (r1) ->
               case resy of
                 Some (r2) -> r2 := deref (r1)
-              | None -> addHashTab (tab, yc [0], r1)
+              | None -> addHashTab (tab, (yc [0]), r1)
               esac
           | None ->
               case resy of
-                Some (r2) -> addHashTab (tab, xc [0], r2)
+                Some (r2) -> addHashTab (tab, (xc [0]), r2)
               | None ->
                 local r = ref (fun (x) {x});
-                addHashTab (tab, xc [0], r);
-                addHashTab (tab, yc [0], r)
+                addHashTab (tab, (xc [0]), r);
+                addHashTab (tab, (yc [0]), r)
               esac
           esac;
           for skip, i < x.length, i := i + 1 do
