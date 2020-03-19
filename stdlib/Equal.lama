@@ -1,0 +1,71 @@
+import List;
+import Ref;
+import Collection;
+
+public fun equal (x, y) {
+  local tab = ref (emptyHashTab ());
+  case x of
+    #unboxed ->
+      case y of
+        #unboxed -> x == y
+      | _ -> false
+      esac
+  | #string ->
+    case y of
+      #string -> x == y
+    | _ -> false
+    esac
+  | #fun ->
+    case y of
+      #fun ->
+        local xc = clone (x), yc = clone (y);
+        local resx = findMap (deref (tab), xc [0]),
+              resy = findMap (deref (tab), yc [0]);
+        local alreadyEqual =
+          case resx of
+            Some (r1) ->
+              case resy of
+                Some (r2) ->
+                  local r1c = clone (deref(r1)), r2c = clone (deref(r2));
+                  r1c [0] == r2c [0]
+              | None -> false
+              esac
+          | None -> false
+          esac;
+        if alreadyEqual then true
+        elif x.length != y.length then false
+        else
+          local i = 1, ans = ref (true);
+          case resx of
+            Some (r1) ->
+              case resy of
+                Some (r2) -> r2 := deref (r1)
+              | None -> addHashTab (tab, yc [0], r1)
+              esac
+          | None ->
+              case resy of
+                Some (r2) -> addHashTab (tab, xc [0], r2)
+              | None ->
+                local r = ref (fun (x) {x});
+                addHashTab (tab, xc [0], r);
+                addHashTab (tab, yc [0], r)
+              esac
+          esac;
+          for skip, i < x.length, i := i + 1 do
+            ans := deref (ans) && equal (x [i], y [i])
+          od;
+          deref (ans)
+        fi
+    | _ -> false
+    esac
+  | _ ->
+    if (x.length == y.length) then
+      local xc = clone (x), yc = clone (y), i = 0, ans = ref (true);
+      for skip, i < x.length, i := i + 1 do
+        ans := deref (ans) && equal (x [i], y [i])
+      od;
+      ans
+    else false
+    fi
+  esac
+}
