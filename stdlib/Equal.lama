@@ -2,8 +2,9 @@ import List;
 import Ref;
 import Collection;
 
+local tab = emptyHashTab ();
+
 public fun equal (x, y) {
-  local tab = ref (emptyHashTab ());
   case x of
     #unboxed ->
       case y of
@@ -18,39 +19,38 @@ public fun equal (x, y) {
   | #fun ->
     case y of
       #fun ->
-        local xc = clone (x), yc = clone (y);
-        local resx = findMap (deref (tab), xc [0]),
-              resy = findMap (deref (tab), yc [0]);
+        local resx = findMap (tab, (x [0])),
+              resy = findMap (tab, (y [0]));
         local alreadyEqual =
           case resx of
             Some (r1) ->
               case resy of
-                Some (r2) ->
-                  local r1c = clone (deref(r1)), r2c = clone (deref(r2));
-                  r1c [0] == r2c [0]
+                Some (r2) -> (r1 [0] == r2 [0])
               | None -> false
               esac
           | None -> false
           esac;
-        if alreadyEqual then true
+        if alreadyEqual           then true
         elif x.length != y.length then false
+        elif x.length == 1        then (x [0] == y [0])
         else
           local i = 1, ans = ref (true);
           case resx of
             Some (r1) ->
               case resy of
                 Some (r2) -> r2 := deref (r1)
-              | None -> addHashTab (tab, (yc [0]), r1)
+              | None -> addHashTab (tab, (y [0]), r1)
               esac
           | None ->
               case resy of
-                Some (r2) -> addHashTab (tab, (xc [0]), r2)
+                Some (r2) -> addHashTab (tab, (x [0]), r2)
               | None ->
                 local r = ref (fun (x) {x});
-                addHashTab (tab, (xc [0]), r);
-                addHashTab (tab, (yc [0]), r)
+                addHashTab (tab, (x [0]), r);
+                addHashTab (tab, (y [0]), r)
               esac
           esac;
+          printf ("%d", x.length);
           for skip, i < x.length, i := i + 1 do
             ans := deref (ans) && equal (x [i], y [i])
           od;
@@ -59,13 +59,19 @@ public fun equal (x, y) {
     | _ -> false
     esac
   | _ ->
-    if (x.length == y.length) then
-      local xc = clone (x), yc = clone (y), i = 0, ans = ref (true);
-      for skip, i < x.length, i := i + 1 do
-        ans := deref (ans) && equal (x [i], y [i])
-      od;
-      ans
-    else false
-    fi
+    case y of
+      #unboxed -> false
+    | #string -> false
+    | #fun -> false
+    | _ ->
+      if (x.length == y.length) then
+        local i = 0, ans = ref (true);
+        for skip, i < x.length, i := i + 1 do
+          ans := deref (ans) && equal (x [i], y [i])
+        od;
+        ans
+      else false
+      fi
+    esac
   esac
 }

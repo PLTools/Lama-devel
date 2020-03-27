@@ -1,7 +1,11 @@
 import Equal;
 
---local x = (fun (x) {x}), y = x;
---local x = "a", y = "a";
+fun f (x, y) {
+  fun () {x+y}
+}
+
+local x = f (5, 6), y = f (5, 6);
+--local x = "a", y = x;
 if (equal (x, y)) then
   printf ("Correct\n")
 else
