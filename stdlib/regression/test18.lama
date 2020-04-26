@@ -1,12 +1,20 @@
 import Equal;
 
-fun f (x, y) {
-  fun () {x+y}
+fun f (x, y) {x + y}
+
+fun g (x, y) {x - y}
+
+local x1 = f (g (12, 7), 6), y1 = f (g (12, 7), 6);
+
+fun h () {
+  fun hh () {h () ()}
+  hh 
 }
 
-local x = f (5, 6), y = f (5, 6);
+local x2 = h (), y2 = h ();
+
 --local x = "a", y = x;
-if (equal (x, y)) then
+if (equal (x1, y1) && equal (x2, y2)) then
   printf ("Correct\n")
 else
   printf ("Wrong\n")

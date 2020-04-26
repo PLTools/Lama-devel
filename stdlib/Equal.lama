@@ -34,11 +34,13 @@ public fun equal (x, y) {
         elif x.length != y.length then false
         elif x.length == 1        then (x [0] == y [0])
         else
-          local i = 1, ans = ref (true);
+          local i = 1, ans = true;
           case resx of
             Some (r1) ->
               case resy of
-                Some (r2) -> r2 := deref (r1)
+                Some (r2) ->
+                  removeHashTab (tab, (y [0]));
+                  addHashTab (tab, (y [0]), r1)
               | None -> addHashTab (tab, (y [0]), r1)
               esac
           | None ->
@@ -50,11 +52,10 @@ public fun equal (x, y) {
                 addHashTab (tab, (y [0]), r)
               esac
           esac;
-          printf ("%d", x.length);
           for skip, i < x.length, i := i + 1 do
-            ans := deref (ans) && equal (x [i], y [i])
+            ans := ans && equal (x [i], y [i])
           od;
-          deref (ans)
+          ans
         fi
     | _ -> false
     esac
