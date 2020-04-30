@@ -2,7 +2,9 @@ import List;
 import Ref;
 import Collection;
 
-public fun equal (tab, x, y) {
+local tab = ref (emptyHashTab ());
+
+public fun equal (x, y) {
   case x of
     #unboxed ->
       case y of
@@ -50,7 +52,7 @@ public fun equal (tab, x, y) {
               esac
           esac;
           for skip, i < x.length, i := i + 1 do
-            ans := ans && equal (tab, x [i], y [i])
+            ans := ans && equal (x [i], y [i])
           od;
           ans
         fi
@@ -65,7 +67,7 @@ public fun equal (tab, x, y) {
       if (x.length == y.length) then
         local i = 0, ans = true;
         for skip, i < x.length, i := i + 1 do
-          ans := ans && equal (tab, x [i], y [i])
+          ans := ans && equal (x [i], y [i])
         od;
         ans
       else false

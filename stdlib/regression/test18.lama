@@ -21,12 +21,12 @@ local x3 = ff (3, 1), y3 = ff (3, 1);
 
 local tab = ref (emptyHashTab ());
 
-fun fff (x) {fun (y, z) {if (equal (tab, fff (x), fff (x))) then 1 else fff (x, y, z) fi}}
+fun fff (x) {fun (y, z) {if (equal (fff (x), fff (x))) then 1 else fff (x, y, z) fi}}
 
 local x4 = fff (3, 1, 4);
 
 --local x = "a", y = x;
-if (equal (tab, x1, y1) && equal (tab, x2, y2) && equal (tab, x3, y3)) then
+if (equal (x1, y1) && equal (x2, y2) && equal (x3, y3)) then
   printf ("Correct\n")
 else
   printf ("Wrong\n")
