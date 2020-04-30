@@ -20,7 +20,7 @@
 
 # define WORD_SIZE (CHAR_BIT * sizeof(int))
 
-/* # define DEBUG_PRINT 1 */
+// # define DEBUG_PRINT 1
 
 #ifdef DEBUG_PRINT
 int indent = 0;
@@ -827,7 +827,6 @@ extern void* LmakeString (int length) {
   __pre_gc () ;
   
   r = (data*) alloc (n + 1 + sizeof (int));
-
   r->tag = STRING_TAG | (n << 3);
 
   __post_gc();
@@ -1465,6 +1464,10 @@ static void init_to_space (int flag) {
   to_space.size    = SPACE_SIZE;
 }
 
+// #ifdef DEBUG_PRINT
+extern void debug_clear_to_space (void);
+// #endif
+
 static void gc_swap_spaces (void) {
 #ifdef DEBUG_PRINT
   indent++; print_indent ();
@@ -1482,8 +1485,10 @@ static void gc_swap_spaces (void) {
   tt = from_space.size;
   from_space.size = to_space.size;
   to_space.size = tt;
+  debug_clear_to_space ();
 #ifdef DEBUG_PRINT
   indent--;
+  // debug_clear_to_space ();
 #endif
 }
 
@@ -1749,75 +1754,11 @@ extern void init_pool (void) {
   init_extra_roots ();
 }
 
-static void* gc (size_t size) {
-  current = to_space.begin;
-#ifdef DEBUG_PRINT
-  print_indent ();
-  printf ("gc: current:%p; to_space.b =%p; to_space.e =%p; \
-           f_space.b = %p; f_space.e = %p; __gc_stack_top=%p; __gc_stack_bottom=%p\n",
-	  current, to_space.begin, to_space.end, from_space.begin, from_space.end,
-	  __gc_stack_top, __gc_stack_bottom);
-  fflush (stdout);
-#endif
-  gc_root_scan_data ();
-#ifdef DEBUG_PRINT
-  print_indent ();
-  printf ("gc: data is scanned\n"); fflush (stdout);
-#endif
-  __gc_root_scan_stack ();
-  for (int i = 0; i < extra_roots.current_free; i++) {
-#ifdef DEBUG_PRINT
-    print_indent ();
-    printf ("gc: extra_root № %i: %p %p\n", i, extra_roots.roots[i],
-	    (size_t*) extra_roots.roots[i]);
-    fflush (stdout);
-#endif
-    gc_test_and_copy_root ((size_t**)extra_roots.roots[i]);
+// #ifdef DEBUG_PRINT
+void debug_clear_to_space (void) {
+  for (size_t * i = to_space.begin; i < to_space.end; i++){
+    *i = NULL;
   }
-#ifdef DEBUG_PRINT
-  print_indent ();
-  printf ("gc: no more extra roots\n"); fflush (stdout);
-#endif
-
-  if (!IN_PASSIVE_SPACE(current)) {
-    printf ("gc: ASSERT: !IN_PASSIVE_SPACE(current) to_begin = %p to_end = %p \
-             current = %p\n", to_space.begin, to_space.end, current);
-    fflush (stdout);
-    perror ("ASSERT: !IN_PASSIVE_SPACE(current)\n");
-    exit   (1);
-  }
-
-  while (current + size >= to_space.end) {
-#ifdef DEBUG_PRINT
-    print_indent ();
-    printf ("gc: pre-extend_spaces : %p %zu %p \n", current, size, to_space.end);
-    fflush (stdout);
-#endif
-    if (extend_spaces ()) {
-      gc_swap_spaces ();
-      init_to_space (1);
-      return gc (size);
-    }
-#ifdef DEBUG_PRINT
-    print_indent ();
-    printf ("gc: post-extend_spaces: %p %zu %p \n", current, size, to_space.end);
-    fflush (stdout);
-#endif
-  }
-  assert (IN_PASSIVE_SPACE(current));
-  assert (current + size < to_space.end);
-
-  gc_swap_spaces ();
-  from_space.current = current + size;
-#ifdef DEBUG_PRINT
-  print_indent ();
-  printf ("gc: end: (allocate!) return %p; from_space.current %p; \
-           from_space.end %p \n\n",
-	  current, from_space.current, from_space.end);
-  fflush (stdout);
-  indent--;
-#endif
-  return (void *) current;
 }
 
 #ifdef DEBUG_PRINT
@@ -1907,6 +1848,77 @@ static void printFromSpace (void) {
   fflush (stdout);
 }
 #endif
+
+static void* gc (size_t size) {
+  current = to_space.begin;
+#ifdef DEBUG_PRINT
+  print_indent ();
+  printf ("gc: current:%p; to_space.b =%p; to_space.e =%p; \
+           f_space.b = %p; f_space.e = %p; __gc_stack_top=%p; __gc_stack_bottom=%p\n",
+	  current, to_space.begin, to_space.end, from_space.begin, from_space.end,
+	  __gc_stack_top, __gc_stack_bottom);
+  fflush (stdout);
+#endif
+  gc_root_scan_data ();
+#ifdef DEBUG_PRINT
+  print_indent ();
+  printf ("gc: data is scanned\n"); fflush (stdout);
+#endif
+  __gc_root_scan_stack ();
+  for (int i = 0; i < extra_roots.current_free; i++) {
+#ifdef DEBUG_PRINT
+    print_indent ();
+    printf ("gc: extra_root № %i: %p %p\n", i, extra_roots.roots[i],
+	    (size_t*) extra_roots.roots[i]);
+    fflush (stdout);
+#endif
+    gc_test_and_copy_root ((size_t**)extra_roots.roots[i]);
+  }
+#ifdef DEBUG_PRINT
+  print_indent ();
+  printf ("gc: no more extra roots\n"); fflush (stdout);
+#endif
+
+  if (!IN_PASSIVE_SPACE(current)) {
+    printf ("gc: ASSERT: !IN_PASSIVE_SPACE(current) to_begin = %p to_end = %p \
+             current = %p\n", to_space.begin, to_space.end, current);
+    fflush (stdout);
+    perror ("ASSERT: !IN_PASSIVE_SPACE(current)\n");
+    exit   (1);
+  }
+
+  while (current + size >= to_space.end) {
+#ifdef DEBUG_PRINT
+    print_indent ();
+    printf ("gc: pre-extend_spaces : %p %zu %p \n", current, size, to_space.end);
+    fflush (stdout);
+#endif
+    if (extend_spaces ()) {
+      gc_swap_spaces ();
+      init_to_space (1);
+      return gc (size);
+    }
+#ifdef DEBUG_PRINT
+    print_indent ();
+    printf ("gc: post-extend_spaces: %p %zu %p \n", current, size, to_space.end);
+    fflush (stdout);
+#endif
+  }
+  assert (IN_PASSIVE_SPACE(current));
+  assert (current + size < to_space.end);
+
+  gc_swap_spaces ();
+  from_space.current = current + size;
+#ifdef DEBUG_PRINT
+  print_indent ();
+  printf ("gc: end: (allocate!) return %p; from_space.current %p; \
+           from_space.end %p \n\n",
+	  current, from_space.current, from_space.end);
+  fflush (stdout);
+  indent--;
+#endif
+  return (void *) current;
+}
 
 #ifdef __ENABLE_GC__
 // alloc: allocates `size` bytes in heap
