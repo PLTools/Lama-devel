@@ -170,6 +170,36 @@ fun removeColl (m, pk, sort) {
   inner (m)
 }
 
+fun changeColl (m, pk, v, sort) {
+  local compareKeys = makeCompare (sort),
+        k = case sort of Hash -> hash (pk) | _ -> pk esac;
+
+  fun change (vs) {
+    case sort of
+      Map  -> case vs of {} -> {v} | _ : vv -> v : vv esac
+    | Set  -> v
+    | Hash -> [pk, v] : (remove (fun (x) {x.fst == pk}, vs))
+    esac
+  }
+
+  fun inner (m) {
+    case m of
+      {} -> m
+    | MNode (kk, vv, bf, l, r) ->
+       local c = compareKeys (k, kk);
+       if c == 0
+       then MNode (kk, change (vv), bf, l, r)
+       else if c < 0
+            then MNode (kk, vv, bf, inner (l), r)
+            else MNode (kk, vv, bf, l, inner (r))
+            fi
+       fi
+    esac
+  }
+
+  inner (m)
+}
+
 fun contents (m, sort) {
   fun append (k, vs, acc) {
     case sort of
@@ -336,4 +366,8 @@ public fun findHashTab (t, k) {
 
 public fun removeHashTab (t, k) {
   removeColl (t, k, Hash)
+}
+
+public fun changeHashTab (t, k, v) {
+  changeColl (t, k, v, Hash)
 }

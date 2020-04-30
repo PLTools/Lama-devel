@@ -20,7 +20,8 @@ printf ("Replaced: %s\n", findHashTab (t, a).string);
 
 t := removeHashTab (t, a);
 validateColl (t);
-printf ("Restored: %s\n", findHashTab (t, a).string)
+printf ("Restored: %s\n", findHashTab (t, a).string);
 
-
-
+t := changeHashTab (t, a, 300);
+validateColl (t);
+printf ("Changed: %s\n", findHashTab (t, a).string)

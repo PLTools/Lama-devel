@@ -2,9 +2,7 @@ import List;
 import Ref;
 import Collection;
 
-local tab = emptyHashTab ();
-
-public fun equal (x, y) {
+public fun equal (tab, x, y) {
   case x of
     #unboxed ->
       case y of
@@ -19,8 +17,8 @@ public fun equal (x, y) {
   | #fun ->
     case y of
       #fun ->
-        local resx = findMap (tab, (x [0])),
-              resy = findMap (tab, (y [0]));
+        local resx = findMap (deref (tab), (x [0])),
+              resy = findMap (deref (tab), (y [0]));
         local alreadyEqual =
           case resx of
             Some (r1) ->
@@ -38,22 +36,21 @@ public fun equal (x, y) {
           case resx of
             Some (r1) ->
               case resy of
-                Some (r2) ->
-                  removeHashTab (tab, (y [0]));
-                  addHashTab (tab, (y [0]), r1)
-              | None -> addHashTab (tab, (y [0]), r1)
+                Some (r2) -> tab ::= changeHashTab (deref (tab), (y [0]), r1)
+              | None -> tab ::= addHashTab (deref (tab), (y [0]), r1)
               esac
           | None ->
               case resy of
-                Some (r2) -> addHashTab (tab, (x [0]), r2)
+                Some (r2) -> tab ::= addHashTab (deref (tab), (x [0]), r2)
               | None ->
                 local r = ref (fun (x) {x});
-                addHashTab (tab, (x [0]), r);
-                addHashTab (tab, (y [0]), r)
+                tab ::= addHashTab (deref (tab), (x [0]), r);
+                tab ::= addHashTab (deref (tab), (y [0]), r)
+                --printf ("%d and %d added to tab \n", x [0], y [0])
               esac
           esac;
           for skip, i < x.length, i := i + 1 do
-            ans := ans && equal (x [i], y [i])
+            ans := ans && equal (tab, x [i], y [i])
           od;
           ans
         fi
@@ -66,9 +63,9 @@ public fun equal (x, y) {
     | #fun -> false
     | _ ->
       if (x.length == y.length) then
-        local i = 0, ans = ref (true);
+        local i = 0, ans = true;
         for skip, i < x.length, i := i + 1 do
-          ans := deref (ans) && equal (x [i], y [i])
+          ans := ans && equal (tab, x [i], y [i])
         od;
         ans
       else false
