@@ -1,0 +1,116 @@
+PUBLIC ("main")
+EXTERN ("Ls__Infix_37")
+EXTERN ("Ls__Infix_47")
+EXTERN ("Ls__Infix_42")
+EXTERN ("Ls__Infix_45")
+EXTERN ("Ls__Infix_43")
+EXTERN ("Ls__Infix_62")
+EXTERN ("Ls__Infix_6261")
+EXTERN ("Ls__Infix_60")
+EXTERN ("Ls__Infix_6061")
+EXTERN ("Ls__Infix_3361")
+EXTERN ("Ls__Infix_6161")
+EXTERN ("Ls__Infix_3838")
+EXTERN ("Ls__Infix_3333")
+EXTERN ("Ls__Infix_58")
+EXTERN ("Li__Infix_4343")
+EXTERN ("Lcompare")
+EXTERN ("Lwrite")
+EXTERN ("Lread")
+EXTERN ("Lfailure")
+EXTERN ("Lfwrite")
+EXTERN ("Lfread")
+EXTERN ("Lfclose")
+EXTERN ("Lfopen")
+EXTERN ("Lfprintf")
+EXTERN ("Lprintf")
+EXTERN ("LmakeString")
+EXTERN ("Lsprintf")
+EXTERN ("LregexpMatch")
+EXTERN ("Lregexp")
+EXTERN ("Lsubstring")
+EXTERN ("LmatchSubString")
+EXTERN ("Lstringcat")
+EXTERN ("LreadLine")
+EXTERN ("Ltl")
+EXTERN ("Lhd")
+EXTERN ("Lsnd")
+EXTERN ("Lfst")
+EXTERN ("Lhash")
+EXTERN ("Lclone")
+EXTERN ("LmakeArray")
+EXTERN ("LstringInt")
+EXTERN ("global_sysargs")
+EXTERN ("Lsystem")
+EXTERN ("LgetEnv")
+LABEL ("main")
+BEGIN ("main", 2, 0, [])
+LDA (Global ("x"))
+CALL ("Lread", 0, false)
+STI
+DROP
+SEXP ("A", 0)
+CALL ("Lf", 1, false)
+DROP
+SEXP ("B", 0)
+CALL ("Lf", 1, false)
+DROP
+SEXP ("C", 0)
+CALL ("Lf", 1, false)
+DROP
+SEXP ("D", 0)
+CALL ("Lf", 1, false)
+END
+LABEL ("Lf")
+BEGIN ("Lf", 1, 0, [])
+LD (Arg (0))
+DUP
+DUP
+TAG ("A", 0)
+CJMP ("nz", "L24")
+LABEL ("L25")
+DROP
+JMP ("L23")
+LABEL ("L24")
+DROP
+DROP
+CONST (1)
+CALL ("Lwrite", 1, true)
+JMP ("L20")
+LABEL ("L23")
+DUP
+DUP
+TAG ("B", 0)
+CJMP ("nz", "L28")
+LABEL ("L29")
+DROP
+JMP ("L27")
+LABEL ("L28")
+DROP
+DROP
+CONST (2)
+CALL ("Lwrite", 1, true)
+JMP ("L20")
+LABEL ("L27")
+DUP
+DUP
+TAG ("C", 0)
+CJMP ("nz", "L32")
+LABEL ("L33")
+DROP
+JMP ("L31")
+LABEL ("L32")
+DROP
+DROP
+CONST (3)
+CALL ("Lwrite", 1, true)
+JMP ("L20")
+LABEL ("L31")
+DUP
+DROP
+DROP
+CONST (4)
+CALL ("Lwrite", 1, true)
+JMP ("L20")
+LABEL ("L20")
+END

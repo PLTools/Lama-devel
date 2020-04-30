@@ -1,0 +1,160 @@
+PUBLIC ("main")
+EXTERN ("Ls__Infix_37")
+EXTERN ("Ls__Infix_47")
+EXTERN ("Ls__Infix_42")
+EXTERN ("Ls__Infix_45")
+EXTERN ("Ls__Infix_43")
+EXTERN ("Ls__Infix_62")
+EXTERN ("Ls__Infix_6261")
+EXTERN ("Ls__Infix_60")
+EXTERN ("Ls__Infix_6061")
+EXTERN ("Ls__Infix_3361")
+EXTERN ("Ls__Infix_6161")
+EXTERN ("Ls__Infix_3838")
+EXTERN ("Ls__Infix_3333")
+EXTERN ("Ls__Infix_58")
+EXTERN ("Li__Infix_4343")
+EXTERN ("Lcompare")
+EXTERN ("Lwrite")
+EXTERN ("Lread")
+EXTERN ("Lfailure")
+EXTERN ("Lfwrite")
+EXTERN ("Lfread")
+EXTERN ("Lfclose")
+EXTERN ("Lfopen")
+EXTERN ("Lfprintf")
+EXTERN ("Lprintf")
+EXTERN ("LmakeString")
+EXTERN ("Lsprintf")
+EXTERN ("LregexpMatch")
+EXTERN ("Lregexp")
+EXTERN ("Lsubstring")
+EXTERN ("LmatchSubString")
+EXTERN ("Lstringcat")
+EXTERN ("LreadLine")
+EXTERN ("Ltl")
+EXTERN ("Lhd")
+EXTERN ("Lsnd")
+EXTERN ("Lfst")
+EXTERN ("Lhash")
+EXTERN ("Lclone")
+EXTERN ("LmakeArray")
+EXTERN ("LstringInt")
+EXTERN ("global_sysargs")
+EXTERN ("Lsystem")
+EXTERN ("LgetEnv")
+LABEL ("main")
+BEGIN ("main", 2, 0, [])
+LDA (Global ("x"))
+CALL ("Lread", 0, false)
+STI
+DROP
+CONST (100)
+CONST (200)
+CONST (300)
+SEXP ("A", 3)
+CALL ("Lf", 1, false)
+DROP
+CONST (500)
+CONST (600)
+CONST (700)
+SEXP ("B", 3)
+CALL ("Lf", 1, false)
+END
+LABEL ("Lf")
+BEGIN ("Lf", 1, 3, [])
+LD (Arg (0))
+DUP
+DUP
+TAG ("A", 3)
+CJMP ("nz", "L20")
+LABEL ("L21")
+DROP
+JMP ("L19")
+LABEL ("L20")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (2)
+CALL (".elem", 2, false)
+DROP
+DROP
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+ST (Local (2))
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+ST (Local (1))
+DROP
+DUP
+CONST (2)
+CALL (".elem", 2, false)
+ST (Local (0))
+DROP
+DROP
+LD (Local (2))
+LD (Local (1))
+BINOP ("+")
+LD (Local (0))
+BINOP ("+")
+CALL ("Lwrite", 1, true)
+JMP ("L16")
+LABEL ("L19")
+DUP
+DUP
+TAG ("B", 3)
+CJMP ("nz", "L27")
+LABEL ("L28")
+DROP
+JMP ("L17")
+LABEL ("L27")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (2)
+CALL (".elem", 2, false)
+DROP
+DROP
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+ST (Local (2))
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+ST (Local (1))
+DROP
+DUP
+CONST (2)
+CALL (".elem", 2, false)
+ST (Local (0))
+DROP
+DROP
+LD (Local (2))
+LD (Local (1))
+BINOP ("+")
+LD (Local (0))
+BINOP ("+")
+CALL ("Lwrite", 1, true)
+JMP ("L16")
+LABEL ("L17")
+FAIL ((4, 7), true)
+JMP ("L16")
+LABEL ("L16")
+END

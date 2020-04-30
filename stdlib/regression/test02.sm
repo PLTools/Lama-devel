@@ -1,0 +1,381 @@
+PUBLIC ("main")
+EXTERN ("LinitMatcher")
+EXTERN ("LgetCol")
+EXTERN ("LgetLine")
+EXTERN ("LmatchRegexp")
+EXTERN ("LmatchString")
+EXTERN ("LendOfMatcher")
+EXTERN ("LshowMatcher")
+EXTERN ("LcreateRegexp")
+EXTERN ("Ls__Infix_37")
+EXTERN ("Ls__Infix_47")
+EXTERN ("Ls__Infix_42")
+EXTERN ("Ls__Infix_45")
+EXTERN ("Ls__Infix_43")
+EXTERN ("Ls__Infix_62")
+EXTERN ("Ls__Infix_6261")
+EXTERN ("Ls__Infix_60")
+EXTERN ("Ls__Infix_6061")
+EXTERN ("Ls__Infix_3361")
+EXTERN ("Ls__Infix_6161")
+EXTERN ("Ls__Infix_3838")
+EXTERN ("Ls__Infix_3333")
+EXTERN ("Ls__Infix_58")
+EXTERN ("Li__Infix_4343")
+EXTERN ("Lcompare")
+EXTERN ("Lwrite")
+EXTERN ("Lread")
+EXTERN ("Lfailure")
+EXTERN ("Lfwrite")
+EXTERN ("Lfread")
+EXTERN ("Lfclose")
+EXTERN ("Lfopen")
+EXTERN ("Lfprintf")
+EXTERN ("Lprintf")
+EXTERN ("LmakeString")
+EXTERN ("Lsprintf")
+EXTERN ("LregexpMatch")
+EXTERN ("Lregexp")
+EXTERN ("Lsubstring")
+EXTERN ("LmatchSubString")
+EXTERN ("Lstringcat")
+EXTERN ("LreadLine")
+EXTERN ("Ltl")
+EXTERN ("Lhd")
+EXTERN ("Lsnd")
+EXTERN ("Lfst")
+EXTERN ("Lhash")
+EXTERN ("Lclone")
+EXTERN ("LmakeArray")
+EXTERN ("LstringInt")
+EXTERN ("global_sysargs")
+EXTERN ("Lsystem")
+EXTERN ("LgetEnv")
+LABEL ("main")
+BEGIN ("main", 2, 1, [])
+LDA (Global ("m"))
+STRING ("   -- asdasdakm ,m.,msd .,m.,asd\\n    \\n\\n abc")
+CALL ("LinitMatcher", 1, false)
+STI
+DROP
+LDA (Global ("lident"))
+STRING ("[a-z][a-zA-Z_]*")
+STRING ("lowercase identifier")
+CALL ("LcreateRegexp", 2, false)
+STI
+DROP
+LDA (Global ("uident"))
+STRING ("[A-Z][a-zA-Z_]*")
+STRING ("uppercase identifier")
+CALL ("LcreateRegexp", 2, false)
+STI
+DROP
+LDA (Global ("ws"))
+STRING ("\\\\([ \\t\\n]\\\\|--[^\\n]*\\n\\\\)*")
+STRING ("whitespace")
+CALL ("LcreateRegexp", 2, false)
+STI
+DROP
+LDA (Global ("str"))
+STRING ("\"\\([^\"]\\|\"\"\\)*\"")
+STRING ("string literal")
+CALL ("LcreateRegexp", 2, false)
+STI
+DROP
+LDA (Global ("decimal"))
+STRING ("[0-9]+")
+STRING ("decimal literal")
+CALL ("LcreateRegexp", 2, false)
+STI
+DROP
+LDA (Global ("chr"))
+STRING ("'[^']'")
+STRING ("character literal")
+CALL ("LcreateRegexp", 2, false)
+STI
+DROP
+LDA (Global ("expr"))
+CLOSURE ("Llid", [])
+CLOSURE ("Llambda_0", [])
+CALL ("Li__Infix_64", 2, false)
+CLOSURE ("Lconst", [])
+CLOSURE ("Llambda_1", [])
+CALL ("Li__Infix_64", 2, false)
+CALL ("Li__Infix_124124", 2, false)
+STI
+DROP
+LDA (Global ("assn"))
+CLOSURE ("Llid", [])
+CLOSURE ("Llambda_2", [])
+CALL ("Li__Infix_12462", 2, false)
+STI
+DROP
+STRING ("%s\\n")
+LD (Global ("assn"))
+STRING ("x:=3")
+CALL ("LinitMatcher", 1, false)
+CALLC (1, false)
+DUP
+DUP
+TAG ("Fail", 1)
+CJMP ("nz", "L66")
+LABEL ("L67")
+DROP
+JMP ("L65")
+LABEL ("L66")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+DROP
+DROP
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+ST (Local (0))
+DROP
+DROP
+LD (Local (0))
+JMP ("L58")
+LABEL ("L65")
+DUP
+DUP
+TAG ("Succ", 2)
+CJMP ("nz", "L68")
+LABEL ("L69")
+DROP
+JMP ("L60")
+LABEL ("L68")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+DROP
+DROP
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+ST (Local (0))
+DROP
+DROP
+LD (Local (0))
+CALL (".stringval", 1, false)
+JMP ("L58")
+LABEL ("L60")
+FAIL ((59, 21), true)
+JMP ("L58")
+LABEL ("L58")
+CALL ("Lprintf", 2, false)
+END
+LABEL ("Llambda_2")
+BEGIN ("Llambda_2", 1, 0, [])
+STRING (":=")
+CALL ("Ltoken", 1, false)
+CLOSURE ("Llambda_3_7", [Arg (0)])
+CALL ("Li__Infix_12462", 2, true)
+END
+LABEL ("Llambda_3_7")
+BEGIN ("Llambda_3_7", 1, 0, [Arg (0)])
+LD (Global ("expr"))
+CLOSURE ("Llambda_4_9", [Access (0)])
+CALL ("Li__Infix_64", 2, true)
+END
+LABEL ("Llambda_4_9")
+BEGIN ("Llambda_4_9", 1, 0, [Access (0)])
+LD (Access (0))
+LD (Arg (0))
+SEXP ("Assn", 2)
+END
+LABEL ("Llambda_1")
+BEGIN ("Llambda_1", 1, 0, [])
+LD (Arg (0))
+SEXP ("Dec", 1)
+END
+LABEL ("Llambda_0")
+BEGIN ("Llambda_0", 1, 0, [])
+LD (Arg (0))
+SEXP ("Lid", 1)
+END
+LABEL ("Li__Infix_124124")
+BEGIN ("Li__Infix_124124", 2, 0, [])
+CLOSURE ("Llambda_5_17", [Arg (0); Arg (1)])
+END
+LABEL ("Llambda_5_17")
+BEGIN ("Llambda_5_17", 1, 1, [Arg (0); Arg (1)])
+LD (Access (0))
+LD (Arg (0))
+CALLC (1, false)
+DUP
+DUP
+TAG ("Succ", 2)
+CJMP ("nz", "L92")
+LABEL ("L93")
+DROP
+JMP ("L91")
+LABEL ("L92")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+DROP
+DROP
+DUP
+ST (Local (0))
+DROP
+DROP
+LD (Local (0))
+JMP ("L86")
+LABEL ("L91")
+DUP
+DROP
+DUP
+ST (Local (0))
+DROP
+DROP
+LD (Access (1))
+LD (Arg (0))
+CALLC (1, true)
+JMP ("L86")
+LABEL ("L86")
+END
+LABEL ("Li__Infix_12462")
+BEGIN ("Li__Infix_12462", 2, 0, [])
+CLOSURE ("Llambda_6_25", [Arg (0); Arg (1)])
+END
+LABEL ("Llambda_6_25")
+BEGIN ("Llambda_6_25", 1, 2, [Arg (0); Arg (1)])
+LD (Access (0))
+LD (Arg (0))
+CALLC (1, false)
+DUP
+DUP
+TAG ("Succ", 2)
+CJMP ("nz", "L103")
+LABEL ("L104")
+DROP
+JMP ("L102")
+LABEL ("L103")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+DROP
+DROP
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+ST (Local (1))
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+ST (Local (0))
+DROP
+DROP
+LD (Access (1))
+LD (Local (1))
+CALLC (1, false)
+LD (Local (0))
+CALLC (1, true)
+JMP ("L97")
+LABEL ("L102")
+DUP
+DROP
+DUP
+ST (Local (0))
+DROP
+DROP
+LD (Local (0))
+JMP ("L97")
+LABEL ("L97")
+END
+LABEL ("Li__Infix_64")
+BEGIN ("Li__Infix_64", 2, 0, [])
+CLOSURE ("Llambda_7_33", [Arg (0); Arg (1)])
+END
+LABEL ("Llambda_7_33")
+BEGIN ("Llambda_7_33", 1, 2, [Arg (0); Arg (1)])
+LD (Access (0))
+LD (Arg (0))
+CALLC (1, false)
+DUP
+DUP
+TAG ("Succ", 2)
+CJMP ("nz", "L116")
+LABEL ("L117")
+DROP
+JMP ("L115")
+LABEL ("L116")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+DROP
+DROP
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+ST (Local (1))
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+ST (Local (0))
+DROP
+DROP
+LD (Access (1))
+LD (Local (1))
+CALLC (1, false)
+LD (Local (0))
+SEXP ("Succ", 2)
+JMP ("L110")
+LABEL ("L115")
+DUP
+DROP
+DUP
+ST (Local (0))
+DROP
+DROP
+LD (Local (0))
+JMP ("L110")
+LABEL ("L110")
+END
+LABEL ("Lconst")
+BEGIN ("Lconst", 1, 0, [])
+LD (Arg (0))
+LD (Global ("decimal"))
+CALL ("LmatchRegexp", 2, true)
+END
+LABEL ("Luid")
+BEGIN ("Luid", 1, 0, [])
+LD (Arg (0))
+LD (Global ("uident"))
+CALL ("LmatchRegexp", 2, true)
+END
+LABEL ("Llid")
+BEGIN ("Llid", 1, 0, [])
+LD (Arg (0))
+LD (Global ("lident"))
+CALL ("LmatchRegexp", 2, true)
+END
+LABEL ("Ltoken")
+BEGIN ("Ltoken", 1, 0, [])
+CLOSURE ("Llambda_8_47", [Arg (0)])
+END
+LABEL ("Llambda_8_47")
+BEGIN ("Llambda_8_47", 1, 0, [Arg (0)])
+LD (Arg (0))
+LD (Access (0))
+CALL ("LmatchString", 2, true)
+END

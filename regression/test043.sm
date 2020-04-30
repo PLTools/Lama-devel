@@ -1,0 +1,125 @@
+PUBLIC ("main")
+EXTERN ("Ls__Infix_37")
+EXTERN ("Ls__Infix_47")
+EXTERN ("Ls__Infix_42")
+EXTERN ("Ls__Infix_45")
+EXTERN ("Ls__Infix_43")
+EXTERN ("Ls__Infix_62")
+EXTERN ("Ls__Infix_6261")
+EXTERN ("Ls__Infix_60")
+EXTERN ("Ls__Infix_6061")
+EXTERN ("Ls__Infix_3361")
+EXTERN ("Ls__Infix_6161")
+EXTERN ("Ls__Infix_3838")
+EXTERN ("Ls__Infix_3333")
+EXTERN ("Ls__Infix_58")
+EXTERN ("Li__Infix_4343")
+EXTERN ("Lcompare")
+EXTERN ("Lwrite")
+EXTERN ("Lread")
+EXTERN ("Lfailure")
+EXTERN ("Lfwrite")
+EXTERN ("Lfread")
+EXTERN ("Lfclose")
+EXTERN ("Lfopen")
+EXTERN ("Lfprintf")
+EXTERN ("Lprintf")
+EXTERN ("LmakeString")
+EXTERN ("Lsprintf")
+EXTERN ("LregexpMatch")
+EXTERN ("Lregexp")
+EXTERN ("Lsubstring")
+EXTERN ("LmatchSubString")
+EXTERN ("Lstringcat")
+EXTERN ("LreadLine")
+EXTERN ("Ltl")
+EXTERN ("Lhd")
+EXTERN ("Lsnd")
+EXTERN ("Lfst")
+EXTERN ("Lhash")
+EXTERN ("Lclone")
+EXTERN ("LmakeArray")
+EXTERN ("LstringInt")
+EXTERN ("global_sysargs")
+EXTERN ("Lsystem")
+EXTERN ("LgetEnv")
+LABEL ("main")
+BEGIN ("main", 2, 0, [])
+LDA (Global ("x"))
+CALL ("Lread", 0, false)
+STI
+DROP
+SEXP ("Nil", 0)
+CALL ("Lsum", 1, false)
+CALL ("Lwrite", 1, false)
+DROP
+CONST (100)
+SEXP ("Nil", 0)
+SEXP ("Cons", 2)
+CALL ("Lsum", 1, false)
+CALL ("Lwrite", 1, false)
+DROP
+CONST (100)
+CONST (200)
+SEXP ("Nil", 0)
+SEXP ("Cons", 2)
+SEXP ("Cons", 2)
+CALL ("Lsum", 1, false)
+CALL ("Lwrite", 1, false)
+END
+LABEL ("Lsum")
+BEGIN ("Lsum", 1, 2, [])
+LD (Arg (0))
+DUP
+DUP
+TAG ("Nil", 0)
+CJMP ("nz", "L29")
+LABEL ("L30")
+DROP
+JMP ("L28")
+LABEL ("L29")
+DROP
+DROP
+CONST (0)
+RET
+JMP ("L25")
+LABEL ("L28")
+DUP
+DUP
+TAG ("Cons", 2)
+CJMP ("nz", "L32")
+LABEL ("L33")
+DROP
+JMP ("L26")
+LABEL ("L32")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+DROP
+DROP
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+ST (Local (1))
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+ST (Local (0))
+DROP
+DROP
+LD (Local (1))
+LD (Local (0))
+CALL ("Lsum", 1, false)
+BINOP ("+")
+RET
+JMP ("L25")
+LABEL ("L26")
+FAIL ((4, 7), true)
+JMP ("L25")
+LABEL ("L25")
+END

@@ -1,0 +1,139 @@
+PUBLIC ("main")
+EXTERN ("Ls__Infix_37")
+EXTERN ("Ls__Infix_47")
+EXTERN ("Ls__Infix_42")
+EXTERN ("Ls__Infix_45")
+EXTERN ("Ls__Infix_43")
+EXTERN ("Ls__Infix_62")
+EXTERN ("Ls__Infix_6261")
+EXTERN ("Ls__Infix_60")
+EXTERN ("Ls__Infix_6061")
+EXTERN ("Ls__Infix_3361")
+EXTERN ("Ls__Infix_6161")
+EXTERN ("Ls__Infix_3838")
+EXTERN ("Ls__Infix_3333")
+EXTERN ("Ls__Infix_58")
+EXTERN ("Li__Infix_4343")
+EXTERN ("Lcompare")
+EXTERN ("Lwrite")
+EXTERN ("Lread")
+EXTERN ("Lfailure")
+EXTERN ("Lfwrite")
+EXTERN ("Lfread")
+EXTERN ("Lfclose")
+EXTERN ("Lfopen")
+EXTERN ("Lfprintf")
+EXTERN ("Lprintf")
+EXTERN ("LmakeString")
+EXTERN ("Lsprintf")
+EXTERN ("LregexpMatch")
+EXTERN ("Lregexp")
+EXTERN ("Lsubstring")
+EXTERN ("LmatchSubString")
+EXTERN ("Lstringcat")
+EXTERN ("LreadLine")
+EXTERN ("Ltl")
+EXTERN ("Lhd")
+EXTERN ("Lsnd")
+EXTERN ("Lfst")
+EXTERN ("Lhash")
+EXTERN ("Lclone")
+EXTERN ("LmakeArray")
+EXTERN ("LstringInt")
+EXTERN ("global_sysargs")
+EXTERN ("Lsystem")
+EXTERN ("LgetEnv")
+LABEL ("main")
+BEGIN ("main", 2, 0, [])
+LDA (Global ("x"))
+CALL ("Lread", 0, false)
+STI
+DROP
+CALL ("Lf", 0, false)
+CALL ("Lp", 1, false)
+END
+LABEL ("Lp")
+BEGIN ("Lp", 1, 2, [])
+LD (Arg (0))
+DUP
+CONST (0)
+BINOP ("==")
+CJMP ("z", "L11")
+DROP
+CONST (0)
+JMP ("L8")
+LABEL ("L11")
+DUP
+DUP
+TAG ("cons", 2)
+CJMP ("nz", "L13")
+LABEL ("L14")
+DROP
+JMP ("L9")
+LABEL ("L13")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+DROP
+DROP
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+ST (Local (1))
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+ST (Local (0))
+DROP
+DROP
+LD (Local (1))
+CALLC (0, false)
+CALL ("Lwrite", 1, false)
+DROP
+LD (Local (0))
+CALL ("Lp", 1, true)
+JMP ("L8")
+LABEL ("L9")
+FAIL ((15, 7), true)
+JMP ("L8")
+LABEL ("L8")
+END
+LABEL ("Lf")
+BEGIN ("Lf", 0, 2, [])
+LDA (Local (0))
+CONST (0)
+STI
+DROP
+LDA (Local (1))
+CONST (1)
+STI
+DROP
+LDA (Local (0))
+CLOSURE ("Lg_9", [Local (1)])
+LD (Local (0))
+SEXP ("cons", 2)
+STI
+DROP
+LDA (Local (1))
+CONST (2)
+STI
+DROP
+LDA (Local (0))
+CLOSURE ("Lg_9", [Local (1)])
+LD (Local (0))
+SEXP ("cons", 2)
+STI
+DROP
+LD (Local (0))
+RET
+END
+LABEL ("Lg_9")
+BEGIN ("Lg_9", 0, 0, [Local (1)])
+LD (Access (0))
+RET
+END

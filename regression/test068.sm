@@ -1,0 +1,107 @@
+PUBLIC ("main")
+EXTERN ("Ls__Infix_37")
+EXTERN ("Ls__Infix_47")
+EXTERN ("Ls__Infix_42")
+EXTERN ("Ls__Infix_45")
+EXTERN ("Ls__Infix_43")
+EXTERN ("Ls__Infix_62")
+EXTERN ("Ls__Infix_6261")
+EXTERN ("Ls__Infix_60")
+EXTERN ("Ls__Infix_6061")
+EXTERN ("Ls__Infix_3361")
+EXTERN ("Ls__Infix_6161")
+EXTERN ("Ls__Infix_3838")
+EXTERN ("Ls__Infix_3333")
+EXTERN ("Ls__Infix_58")
+EXTERN ("Li__Infix_4343")
+EXTERN ("Lcompare")
+EXTERN ("Lwrite")
+EXTERN ("Lread")
+EXTERN ("Lfailure")
+EXTERN ("Lfwrite")
+EXTERN ("Lfread")
+EXTERN ("Lfclose")
+EXTERN ("Lfopen")
+EXTERN ("Lfprintf")
+EXTERN ("Lprintf")
+EXTERN ("LmakeString")
+EXTERN ("Lsprintf")
+EXTERN ("LregexpMatch")
+EXTERN ("Lregexp")
+EXTERN ("Lsubstring")
+EXTERN ("LmatchSubString")
+EXTERN ("Lstringcat")
+EXTERN ("LreadLine")
+EXTERN ("Ltl")
+EXTERN ("Lhd")
+EXTERN ("Lsnd")
+EXTERN ("Lfst")
+EXTERN ("Lhash")
+EXTERN ("Lclone")
+EXTERN ("LmakeArray")
+EXTERN ("LstringInt")
+EXTERN ("global_sysargs")
+EXTERN ("Lsystem")
+EXTERN ("LgetEnv")
+LABEL ("main")
+BEGIN ("main", 2, 0, [])
+LDA (Global ("l"))
+CLOSURE ("Llambda_0", [])
+CALL ("LmakeLazy", 1, false)
+STI
+DROP
+LDA (Global ("x"))
+CALL ("Lread", 0, false)
+STI
+DROP
+LD (Global ("l"))
+CALLC (0, false)
+CALL ("Lwrite", 1, false)
+DROP
+LD (Global ("l"))
+CALLC (0, false)
+CALL ("Lwrite", 1, false)
+END
+LABEL ("Llambda_0")
+BEGIN ("Llambda_0", 0, 0, [])
+CONST (1)
+CALL ("Lwrite", 1, false)
+DROP
+CONST (800)
+RET
+END
+LABEL ("LmakeLazy")
+BEGIN ("LmakeLazy", 1, 2, [])
+LDA (Local (1))
+CONST (0)
+STI
+DROP
+LDA (Local (0))
+CONST (0)
+STI
+DROP
+CLOSURE ("Llambda_1_5", [Local (1); Local (0); Arg (0)])
+RET
+END
+LABEL ("Llambda_1_5")
+BEGIN ("Llambda_1_5", 0, 0, [Local (1); Local (0); Arg (0)])
+LD (Access (0))
+CJMP ("z", "L34")
+LD (Access (1))
+RET
+JMP ("L32")
+LABEL ("L34")
+LDA (Access (1))
+LD (Access (2))
+CALLC (0, false)
+STI
+DROP
+LDA (Access (0))
+CONST (1)
+STI
+DROP
+LD (Access (1))
+RET
+JMP ("L32")
+LABEL ("L32")
+END

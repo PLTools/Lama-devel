@@ -1,0 +1,718 @@
+PUBLIC ("main")
+EXTERN ("Ls__Infix_37")
+EXTERN ("Ls__Infix_47")
+EXTERN ("Ls__Infix_42")
+EXTERN ("Ls__Infix_45")
+EXTERN ("Ls__Infix_43")
+EXTERN ("Ls__Infix_62")
+EXTERN ("Ls__Infix_6261")
+EXTERN ("Ls__Infix_60")
+EXTERN ("Ls__Infix_6061")
+EXTERN ("Ls__Infix_3361")
+EXTERN ("Ls__Infix_6161")
+EXTERN ("Ls__Infix_3838")
+EXTERN ("Ls__Infix_3333")
+EXTERN ("Ls__Infix_58")
+EXTERN ("Li__Infix_4343")
+EXTERN ("Lcompare")
+EXTERN ("Lwrite")
+EXTERN ("Lread")
+EXTERN ("Lfailure")
+EXTERN ("Lfwrite")
+EXTERN ("Lfread")
+EXTERN ("Lfclose")
+EXTERN ("Lfopen")
+EXTERN ("Lfprintf")
+EXTERN ("Lprintf")
+EXTERN ("LmakeString")
+EXTERN ("Lsprintf")
+EXTERN ("LregexpMatch")
+EXTERN ("Lregexp")
+EXTERN ("Lsubstring")
+EXTERN ("LmatchSubString")
+EXTERN ("Lstringcat")
+EXTERN ("LreadLine")
+EXTERN ("Ltl")
+EXTERN ("Lhd")
+EXTERN ("Lsnd")
+EXTERN ("Lfst")
+EXTERN ("Lhash")
+EXTERN ("Lclone")
+EXTERN ("LmakeArray")
+EXTERN ("LstringInt")
+EXTERN ("global_sysargs")
+EXTERN ("Lsystem")
+EXTERN ("LgetEnv")
+LABEL ("main")
+BEGIN ("main", 2, 3, [])
+CONST (1)
+DUP
+CONST (5)
+BINOP ("==")
+CJMP ("z", "L4")
+DROP
+CONST (5)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L1")
+LABEL ("L4")
+DUP
+CONST (4)
+BINOP ("==")
+CJMP ("z", "L7")
+DROP
+CONST (4)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L1")
+LABEL ("L7")
+DUP
+CONST (3)
+BINOP ("==")
+CJMP ("z", "L10")
+DROP
+CONST (3)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L1")
+LABEL ("L10")
+DUP
+CONST (2)
+BINOP ("==")
+CJMP ("z", "L13")
+DROP
+CONST (2)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L1")
+LABEL ("L13")
+DUP
+CONST (1)
+BINOP ("==")
+CJMP ("z", "L16")
+DROP
+CONST (1)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L1")
+LABEL ("L16")
+DUP
+CONST (0)
+BINOP ("==")
+CJMP ("z", "L2")
+DROP
+CONST (0)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L1")
+LABEL ("L2")
+FAIL ((19, 5), false)
+JMP ("L1")
+LABEL ("L1")
+CONST (1)
+DUP
+CONST (5)
+BINOP ("==")
+CJMP ("z", "L24")
+DUP
+ST (Local (0))
+DROP
+DROP
+LD (Local (0))
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L21")
+LABEL ("L24")
+DUP
+CONST (4)
+BINOP ("==")
+CJMP ("z", "L27")
+DUP
+ST (Local (0))
+DROP
+DROP
+LD (Local (0))
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L21")
+LABEL ("L27")
+DUP
+CONST (3)
+BINOP ("==")
+CJMP ("z", "L30")
+DUP
+ST (Local (0))
+DROP
+DROP
+LD (Local (0))
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L21")
+LABEL ("L30")
+DUP
+CONST (2)
+BINOP ("==")
+CJMP ("z", "L33")
+DUP
+ST (Local (0))
+DROP
+DROP
+LD (Local (0))
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L21")
+LABEL ("L33")
+DUP
+CONST (1)
+BINOP ("==")
+CJMP ("z", "L36")
+DUP
+ST (Local (0))
+DROP
+DROP
+LD (Local (0))
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L21")
+LABEL ("L36")
+DUP
+CONST (0)
+BINOP ("==")
+CJMP ("z", "L22")
+DUP
+ST (Local (0))
+DROP
+DROP
+LD (Local (0))
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L21")
+LABEL ("L22")
+FAIL ((28, 5), false)
+JMP ("L21")
+LABEL ("L21")
+CONST (1)
+CONST (2)
+CONST (3)
+SEXP ("A", 3)
+DUP
+DUP
+TAG ("A", 3)
+CJMP ("nz", "L48")
+LABEL ("L49")
+DROP
+JMP ("L47")
+LABEL ("L48")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+CONST (1)
+BINOP ("==")
+CJMP ("z", "L49")
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+CONST (3)
+BINOP ("==")
+CJMP ("z", "L49")
+DUP
+CONST (2)
+CALL (".elem", 2, false)
+CONST (5)
+BINOP ("==")
+CJMP ("z", "L49")
+DROP
+DROP
+CONST (0)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L41")
+LABEL ("L47")
+DUP
+DUP
+TAG ("A", 3)
+CJMP ("nz", "L53")
+LABEL ("L54")
+DROP
+JMP ("L52")
+LABEL ("L53")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+CONST (3)
+BINOP ("==")
+CJMP ("z", "L54")
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+CONST (4)
+BINOP ("==")
+CJMP ("z", "L54")
+DUP
+CONST (2)
+CALL (".elem", 2, false)
+CONST (5)
+BINOP ("==")
+CJMP ("z", "L54")
+DROP
+DROP
+CONST (0)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L41")
+LABEL ("L52")
+DUP
+DUP
+TAG ("A", 3)
+CJMP ("nz", "L58")
+LABEL ("L59")
+DROP
+JMP ("L57")
+LABEL ("L58")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+CONST (1)
+BINOP ("==")
+CJMP ("z", "L59")
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+CONST (2)
+BINOP ("==")
+CJMP ("z", "L59")
+DUP
+CONST (2)
+CALL (".elem", 2, false)
+CONST (3)
+BINOP ("==")
+CJMP ("z", "L59")
+DROP
+DROP
+CONST (1)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L41")
+LABEL ("L57")
+DUP
+DUP
+TAG ("A", 3)
+CJMP ("nz", "L62")
+LABEL ("L63")
+DROP
+JMP ("L42")
+LABEL ("L62")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+CONST (6)
+BINOP ("==")
+CJMP ("z", "L63")
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+CONST (7)
+BINOP ("==")
+CJMP ("z", "L63")
+DUP
+CONST (2)
+CALL (".elem", 2, false)
+CONST (8)
+BINOP ("==")
+CJMP ("z", "L63")
+DROP
+DROP
+CONST (0)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L41")
+LABEL ("L42")
+FAIL ((37, 5), false)
+JMP ("L41")
+LABEL ("L41")
+STRING ("abc")
+DUP
+STRING ("def")
+PATT (StrCmp)
+CJMP ("z", "L69")
+DROP
+CONST (0)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L66")
+LABEL ("L69")
+DUP
+STRING ("ab")
+PATT (StrCmp)
+CJMP ("z", "L72")
+DROP
+CONST (0)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L66")
+LABEL ("L72")
+DUP
+STRING ("abc")
+PATT (StrCmp)
+CJMP ("z", "L75")
+DROP
+CONST (1)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L66")
+LABEL ("L75")
+DUP
+STRING ("")
+PATT (StrCmp)
+CJMP ("z", "L67")
+DROP
+CONST (0)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L66")
+LABEL ("L67")
+FAIL ((44, 5), false)
+JMP ("L66")
+LABEL ("L66")
+CONST (1)
+CONST (2)
+CONST (3)
+CALL (".array", 3, false)
+DUP
+DUP
+ARRAY (0)
+CJMP ("nz", "L87")
+LABEL ("L88")
+DROP
+JMP ("L86")
+LABEL ("L87")
+DROP
+DROP
+CONST (0)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L80")
+LABEL ("L86")
+DUP
+DUP
+ARRAY (2)
+CJMP ("nz", "L92")
+LABEL ("L93")
+DROP
+JMP ("L91")
+LABEL ("L92")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+DROP
+DROP
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+ST (Local (1))
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+ST (Local (0))
+DROP
+DROP
+CONST (0)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L80")
+LABEL ("L91")
+DUP
+DUP
+ARRAY (3)
+CJMP ("nz", "L97")
+LABEL ("L98")
+DROP
+JMP ("L96")
+LABEL ("L97")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (2)
+CALL (".elem", 2, false)
+DROP
+DROP
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+ST (Local (2))
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+ST (Local (1))
+DROP
+DUP
+CONST (2)
+CALL (".elem", 2, false)
+ST (Local (0))
+DROP
+DROP
+LD (Local (2))
+CALL ("Lwrite", 1, false)
+DROP
+LD (Local (1))
+CALL ("Lwrite", 1, false)
+DROP
+LD (Local (0))
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L80")
+LABEL ("L96")
+DUP
+DUP
+ARRAY (3)
+CJMP ("nz", "L107")
+LABEL ("L108")
+DROP
+JMP ("L81")
+LABEL ("L107")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (2)
+CALL (".elem", 2, false)
+DROP
+DROP
+DROP
+CONST (0)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L80")
+LABEL ("L81")
+FAIL ((51, 5), false)
+JMP ("L80")
+LABEL ("L80")
+CONST (1)
+CONST (2)
+CONST (3)
+CALL (".array", 3, false)
+DUP
+DUP
+ARRAY (0)
+CJMP ("nz", "L118")
+LABEL ("L119")
+DROP
+JMP ("L117")
+LABEL ("L118")
+DROP
+DROP
+CONST (0)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L111")
+LABEL ("L117")
+DUP
+DUP
+ARRAY (2)
+CJMP ("nz", "L123")
+LABEL ("L124")
+DROP
+JMP ("L122")
+LABEL ("L123")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+DROP
+DROP
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+ST (Local (1))
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+ST (Local (0))
+DROP
+DROP
+CONST (0)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L111")
+LABEL ("L122")
+DUP
+DUP
+ARRAY (3)
+CJMP ("nz", "L128")
+LABEL ("L129")
+DROP
+JMP ("L127")
+LABEL ("L128")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (2)
+CALL (".elem", 2, false)
+DROP
+DROP
+DROP
+CONST (100)
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L111")
+LABEL ("L127")
+DUP
+DUP
+ARRAY (3)
+CJMP ("nz", "L132")
+LABEL ("L133")
+DROP
+JMP ("L112")
+LABEL ("L132")
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+DROP
+DUP
+CONST (2)
+CALL (".elem", 2, false)
+DROP
+DROP
+DUP
+CONST (0)
+CALL (".elem", 2, false)
+ST (Local (2))
+DROP
+DUP
+CONST (1)
+CALL (".elem", 2, false)
+ST (Local (1))
+DROP
+DUP
+CONST (2)
+CALL (".elem", 2, false)
+ST (Local (0))
+DROP
+DROP
+LD (Local (2))
+CALL ("Lwrite", 1, false)
+DROP
+LD (Local (1))
+CALL ("Lwrite", 1, false)
+DROP
+LD (Local (0))
+CALL ("Lwrite", 1, false)
+DROP
+JMP ("L111")
+LABEL ("L112")
+FAIL ((58, 5), false)
+JMP ("L111")
+LABEL ("L111")
+STRING ("%s\\n")
+CONST (1)
+CONST (2)
+CONST (3)
+CONST (4)
+CONST (5)
+CONST (6)
+CONST (1)
+CONST (2)
+CONST (3)
+SEXP ("Cons", 3)
+CALL (".array", 4, false)
+CALL (".array", 4, false)
+CALL ("Lcollect_ints", 1, false)
+CALL (".stringval", 1, false)
+CALL ("Lprintf", 2, false)
+END
+LABEL ("Lcollect_ints")
+BEGIN ("Lcollect_ints", 1, 0, [])
+LD (Arg (0))
+SEXP ("Nil", 0)
+CALL ("Lcollect_ints_acc", 2, true)
+RET
+END
+LABEL ("Lcollect_ints_acc")
+BEGIN ("Lcollect_ints_acc", 2, 2, [])
+LD (Arg (0))
+DUP
+PATT (UnBoxed)
+CJMP ("z", "L165")
+DUP
+ST (Local (1))
+DROP
+DROP
+LD (Local (1))
+LD (Arg (1))
+SEXP ("Cons", 2)
+RET
+JMP ("L162")
+LABEL ("L165")
+DUP
+PATT (String)
+CJMP ("z", "L169")
+DROP
+LD (Arg (1))
+RET
+JMP ("L162")
+LABEL ("L169")
+DUP
+DROP
+DROP
+LDA (Local (0))
+CONST (0)
+STI
+DROP
+JMP ("L178")
+LABEL ("L177")
+LDA (Arg (1))
+LD (Arg (0))
+LD (Local (0))
+CALL (".elem", 2, false)
+LD (Arg (1))
+CALL ("Lcollect_ints_acc", 2, false)
+STI
+DROP
+LDA (Local (0))
+LD (Local (0))
+CONST (1)
+BINOP ("+")
+STI
+DROP
+LABEL ("L178")
+LD (Local (0))
+LD (Arg (0))
+CALL (".length", 1, false)
+BINOP ("<")
+CJMP ("nz", "L177")
+LD (Arg (1))
+RET
+JMP ("L162")
+LABEL ("L162")
+END

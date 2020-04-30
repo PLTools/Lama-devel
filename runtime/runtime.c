@@ -1431,10 +1431,11 @@ extern void __gc_root_scan_stack ();
 /*           Mark-and-copy                  */
 /* ======================================== */
 
-//static size_t SPACE_SIZE = 16;
-static size_t SPACE_SIZE = 32 * 1024 * 1024;
+static size_t SPACE_SIZE = 16;
+// static size_t SPACE_SIZE = 32 * 1024 * 1024;
 // static size_t SPACE_SIZE = 128;
-// static size_t SPACE_SIZE = 1024 * 1024;
+// static size_t SPACE_SIZE = 1024;
+static size_t MAX_SPACE_SIZE = 1024*1024;
 
 static int free_pool (pool * p) {
   size_t *a = p->begin, b = p->size;
@@ -1449,12 +1450,16 @@ static void init_to_space (int flag) {
   size_t space_size = 0;
   if (flag) SPACE_SIZE = SPACE_SIZE << 1;
   space_size     = SPACE_SIZE * sizeof(size_t);
-  to_space.begin = mmap (NULL, space_size, PROT_READ | PROT_WRITE,
-			 MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
-  if (to_space.begin == MAP_FAILED) {
-    perror ("EROOR: init_to_space: mmap failed\n");
-    exit   (1);
+
+  assert (space_size >= to_space.size * sizeof(size_t));
+  if (space_size > to_space.size * sizeof(size_t)) {
+    if (mprotect (to_space.begin, space_size,
+    		  PROT_READ | PROT_WRITE) == -1) {
+      perror ("EROOR: init_to_space: mprotect failed\n");
+      exit   (1);
+    }
   }
+
   to_space.current = to_space.begin;
   to_space.end     = to_space.begin + SPACE_SIZE;
   to_space.size    = SPACE_SIZE;
@@ -1465,15 +1470,18 @@ static void gc_swap_spaces (void) {
   indent++; print_indent ();
   printf ("gc_swap_spaces\n"); fflush (stdout);
 #endif
-  free_pool (&from_space);
+  size_t *t = NULL, tt = 0;
+  t = from_space.begin;
   from_space.begin   = to_space.begin;
+  to_space.begin = t;
   from_space.current = current;
-  from_space.end     = to_space.end;
-  from_space.size    = to_space.size;
-  to_space.begin   = NULL;
   to_space.current = NULL;
-  to_space.end     = NULL;
-  to_space.size    = 0;
+  t = from_space.end;
+  from_space.end = to_space.end;
+  to_space.end = t;
+  tt = from_space.size;
+  from_space.size = to_space.size;
+  to_space.size = tt;
 #ifdef DEBUG_PRINT
   indent--;
 #endif
@@ -1540,26 +1548,43 @@ static void copy_elements (size_t *where, size_t *from, int len) {
 }
 
 static int extend_spaces (void) {
-  void *p = (void *) BOX (NULL);
+  //  void *p = (void *) BOX (NULL);
   size_t old_space_size = SPACE_SIZE        * sizeof(size_t),
          new_space_size = (SPACE_SIZE << 1) * sizeof(size_t);
-  p = mremap(to_space.begin, old_space_size, new_space_size, 0);
-#ifdef DEBUG_PRINT
-  indent++; print_indent ();
-#endif
-  if (p == MAP_FAILED) {
-#ifdef DEBUG_PRINT
-    print_indent ();
-    printf ("extend: extend_spaces: mremap failed\n"); fflush (stdout);
-#endif
-    return 1;
+  // p = mremap(to_space.begin, old_space_size, new_space_size, 0);
+  /* if (mprotect (to_space.end, new_space_size - to_space.size * sizeof(size_t), */
+  /* 		PROT_READ | PROT_WRITE) == -1) { */
+  if (mprotect (to_space.begin, new_space_size,
+  		PROT_READ | PROT_WRITE) == -1) {
+    printf ("extend_spaces: failed: %zu %zu %zu %zu %zu %zu\n", to_space.begin, to_space.end,
+	    to_space.end - to_space.begin,
+	    new_space_size - to_space.size * sizeof(size_t),
+	    to_space.size, new_space_size, MAX_SPACE_SIZE);
+    fflush (stdout);
+
+    //    perror ("EROOR: extend_spaces: mprotect failed\n");
+    exit   (1);
   }
-#ifdef DEBUG_PRINT
-  print_indent ();
-  printf ("extend: %p %p %p %p\n", p, to_space.begin, to_space.end, current);
-  fflush (stdout);
-  indent--;
-#endif
+  /* printf ("extend_spaces: success: %zu %zu %zu\n", to_space.begin, old_space_size, new_space_size); */
+  /*   fflush (stdout); */
+
+
+/* #ifdef DEBUG_PRINT */
+/*   indent++; print_indent (); */
+/* #endif */
+/*   if (p == MAP_FAILED) { */
+/* #ifdef DEBUG_PRINT */
+/*     print_indent (); */
+/*     printf ("extend: extend_spaces: mremap failed\n"); fflush (stdout); */
+/* #endif */
+/*     return 1; */
+/*   } */
+/* #ifdef DEBUG_PRINT */
+/*   print_indent (); */
+/*   printf ("extend: %p %p %p %p\n", p, to_space.begin, to_space.end, current); */
+/*   fflush (stdout); */
+/*   indent--; */
+/* #endif */
   to_space.end    += SPACE_SIZE;
   SPACE_SIZE      =  SPACE_SIZE << 1;
   to_space.size   =  SPACE_SIZE;
@@ -1733,18 +1758,24 @@ static inline void init_extra_roots (void) {
 
 extern void init_pool (void) {
   size_t space_size = SPACE_SIZE * sizeof(size_t);
-  from_space.begin = mmap (NULL, space_size, PROT_READ | PROT_WRITE,
+  from_space.begin = mmap (NULL, MAX_SPACE_SIZE, PROT_NONE,
     			   MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
-  to_space.begin   = NULL;
-  if (to_space.begin == MAP_FAILED) {
+  to_space.begin   = mmap (NULL, MAX_SPACE_SIZE, PROT_NONE,
+    			   MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
+  if (from_space.begin == MAP_FAILED || to_space.begin == MAP_FAILED) {
     perror ("EROOR: init_pool: mmap failed\n");
     exit   (1);
   }
+  if (mprotect (from_space.begin, space_size, PROT_READ | PROT_WRITE) == -1) {
+    perror ("EROOR: init_pool: mprotect failed\n");
+    exit   (1);
+  }
+
   from_space.current = from_space.begin;
   from_space.end     = from_space.begin + SPACE_SIZE;
   from_space.size    = SPACE_SIZE;
   to_space.current   = NULL;
-  to_space.end       = NULL;
+  to_space.end       = to_space.begin;
   to_space.size      = 0;
   init_extra_roots ();
 }
