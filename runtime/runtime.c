@@ -1431,7 +1431,8 @@ extern void __gc_root_scan_stack ();
 /* ======================================== */
 
 static size_t SPACE_SIZE = 16;
-// static size_t SPACE_SIZE = 32 * 1024 * 1024;
+// static size_t SPACE_SIZE = 1024 * 1024;
+// static size_t SPACE_SIZE = 128 * 1024;
 // static size_t SPACE_SIZE = 128;
 // static size_t SPACE_SIZE = 1024;
 static size_t MAX_SPACE_SIZE = 1024*1024;
@@ -1732,6 +1733,7 @@ static inline void init_extra_roots (void) {
 
 extern void init_pool (void) {
   size_t space_size = SPACE_SIZE * sizeof(size_t);
+  assert (MAX_SPACE_SIZE > SPACE_SIZE * 2);
   from_space.begin = mmap (NULL, MAX_SPACE_SIZE, PROT_NONE,
     			   MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
   to_space.begin   = mmap (NULL, MAX_SPACE_SIZE, PROT_NONE,
