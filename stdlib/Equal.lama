@@ -2,7 +2,7 @@ import List;
 import Ref;
 import Collection;
 
-local tab = ref (emptyHashTab ());
+local tab = emptyHashTab ();
 
 public fun equal (x, y) {
   case x of
@@ -19,8 +19,8 @@ public fun equal (x, y) {
   | #fun ->
     case y of
       #fun ->
-        local resx = findMap (deref (tab), (x [0])),
-              resy = findMap (deref (tab), (y [0]));
+        local resx = findMap (tab, (x [0])),
+              resy = findMap (tab, (y [0]));
         local alreadyEqual =
           case resx of
             Some (r1) ->
@@ -38,16 +38,16 @@ public fun equal (x, y) {
           case resx of
             Some (r1) ->
               case resy of
-                Some (r2) -> tab ::= changeHashTab (deref (tab), (y [0]), r1)
-              | None -> tab ::= addHashTab (deref (tab), (y [0]), r1)
+                Some (r2) -> tab := changeHashTab (tab, (y [0]), r1)
+              | None -> tab := addHashTab (tab, (y [0]), r1)
               esac
           | None ->
               case resy of
-                Some (r2) -> tab ::= addHashTab (deref (tab), (x [0]), r2)
+                Some (r2) -> tab := addHashTab (tab, (x [0]), r2)
               | None ->
                 local r = ref (fun (x) {x});
-                tab ::= addHashTab (deref (tab), (x [0]), r);
-                tab ::= addHashTab (deref (tab), (y [0]), r)
+                tab := addHashTab (tab, (x [0]), r);
+                tab := addHashTab (tab, (y [0]), r)
                 --printf ("%d and %d added to tab \n", x [0], y [0])
               esac
           esac;
