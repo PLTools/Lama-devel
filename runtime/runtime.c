@@ -1487,50 +1487,6 @@ int is_valid_heap_pointer (void *p)  {
   return IS_VALID_HEAP_POINTER(p);
 }
 
-extern size_t * gc_copy (size_t *obj);
-
-static void copy_elements (size_t *where, size_t *from, int len) {
-  int    i = 0;
-  void * p = NULL;
-#ifdef DEBUG_PRINT
-  indent++; print_indent ();
-  printf ("copy_elements: start; len = %d\n", len); fflush (stdout);
-#endif
-  for (i = 0; i < len; i++) {
-    size_t elem = from[i];
-    if (!IS_VALID_HEAP_POINTER(elem)) {
-      *where = elem;
-      where++;
-#ifdef DEBUG_PRINT
-      print_indent ();	
-      printf ("copy_elements: copy NON ptr: %zu %p \n", elem, elem); fflush (stdout);
-#endif
-    }
-    else {
-#ifdef DEBUG_PRINT
-      print_indent ();	
-      printf ("copy_elements: fix element: %p -> %p\n", elem, *where);
-      fflush (stdout);
-#endif
-      p = gc_copy ((size_t*) elem);
-      *where = (size_t) p;
-      where ++;
-    }
-#ifdef DEBUG_PRINT
-    print_indent ();
-    printf ("copy_elements: iteration end: where = %p, *where = %p, i = %d, \
-             len = %d\n", where, *where, i, len); fflush (stdout);
-#endif
-
-  }
-#ifdef DEBUG_PRINT
-  print_indent ();
-  printf ("\tcopy_elements: end\n"); fflush (stdout);
-  indent--;
-#endif
-
-}
-
 static int extend_spaces (void) {
   size_t new_space_size = (SPACE_SIZE << 1) * sizeof(size_t);
   if (mprotect (to_space.begin, new_space_size,
@@ -1544,115 +1500,59 @@ static int extend_spaces (void) {
   return 0;
 }
 
-extern size_t * gc_copy (size_t *obj) {
+extern size_t * gc_copy_element (size_t *obj) {
   data   *d    = TO_DATA(obj);
   sexp   *s    = NULL;
   size_t *copy = NULL;
-  int     i    = 0;
-#ifdef DEBUG_PRINT
-  int len1, len2, len3;
-  void * objj;
-  void * newobjj = (void*)current;
-  indent++; print_indent ();
-  printf ("gc_copy: %p cur = %p starts\n", obj, current);
-  fflush (stdout);
-#endif
-
-  if (!IS_VALID_HEAP_POINTER(obj)) {
-#ifdef DEBUG_PRINT
-    print_indent ();
-    printf ("gc_copy: invalid ptr: %p\n", obj); fflush (stdout);
-    indent--;
-#endif
-    return obj;
-  }
-
-  if (!IN_PASSIVE_SPACE(current) && current != to_space.end) {
-#ifdef DEBUG_PRINT
-    print_indent ();
-    printf("ERROR: gc_copy: out-of-space %p %p %p\n",
-	   current, to_space.begin, to_space.end);
-    fflush(stdout);
-#endif
-    perror("ERROR: gc_copy: out-of-space\n");
-    exit (1);
-  }
+  int i = 0;
+  copy = current;
 
   if (IS_FORWARD_PTR(d->tag)) {
-#ifdef DEBUG_PRINT
-    print_indent ();
-    printf ("gc_copy: IS_FORWARD_PTR: return! %p -> %p\n", obj, (size_t *) d->tag);
-    fflush(stdout);
-    indent--;
-#endif
     return (size_t *) d->tag;
   }
-
-  copy = current;
-#ifdef DEBUG_PRINT
-  objj = d;
-#endif
+  
   switch (TAG(d->tag)) {
-    case CLOSURE_TAG:
+  case STRING_TAG:
+#ifdef DEBUG_PRINT
+    indent++;
+    print_indent ();
+    printf ("gc_copy:string_tag; len = %d\n", LEN(d->tag) + 1); fflush (stdout);
+#endif
+    current += (LEN(d->tag) + sizeof(int)) / sizeof(size_t) + 1;
+    *copy = d->tag;
+    copy++;
+    d->tag = (int) copy;
+    strcpy ((char*)&copy[0], (char*) obj);
+    break;
+  case CLOSURE_TAG:
+  case ARRAY_TAG:
 #ifdef DEBUG_PRINT
       print_indent ();
-      printf ("gc_copy:closure_tag; len =  %zu\n", LEN(d->tag)); fflush (stdout);
+      printf ("gc_copy:closure or array; len =  %zu\n", LEN(d->tag)); fflush (stdout);
 #endif
       i = LEN(d->tag);
       current += i+1;
       *copy = d->tag;
       copy++;
       d->tag = (int) copy;
-      copy_elements (copy, obj, i);
+      memcpy (copy, obj,  sizeof(int) * i);
       break;
-    
-    case ARRAY_TAG:
+  case SEXP_TAG:
+    s = TO_SEXP(obj);
+    i = LEN(s->contents.tag);
+    current += i + 2;
+    *copy = s->tag;
+    copy++;
+    *copy = d->tag;
+    copy++;
+    d->tag = (int) copy;
+    memcpy (copy, obj,  sizeof(int) * i);
 #ifdef DEBUG_PRINT
-      print_indent ();
-      printf ("gc_copy:array_tag; len =  %zu\n", LEN(d->tag)); fflush (stdout);
+    indent++;
+    print_indent ();
+    printf ("gc_copy:sexp_tag; len = %d\n", i); fflush (stdout);
 #endif
-      current += ((LEN(d->tag) + 1) * sizeof (int) - 1) / sizeof (size_t) + 1;
-      *copy = d->tag;
-      copy++;
-      i = LEN(d->tag);
-      d->tag = (int) copy;
-      copy_elements (copy, obj, i);
-      break;
-
-    case STRING_TAG:
-#ifdef DEBUG_PRINT
-      print_indent ();
-      printf ("gc_copy:string_tag; len = %d\n", LEN(d->tag) + 1); fflush (stdout);
-#endif
-      current += (LEN(d->tag) + sizeof(int)) / sizeof(size_t) + 1;
-      *copy = d->tag;
-      copy++;
-      d->tag = (int) copy;
-      strcpy ((char*)&copy[0], (char*) obj);
-      break;
-
-  case SEXP_TAG  :
-      s = TO_SEXP(obj);
-#ifdef DEBUG_PRINT
-      objj = s;
-      len1 = LEN(s->contents.tag);
-      len2 = LEN(s->tag);
-      len3 = LEN(d->tag);
-      print_indent ();
-      printf ("gc_copy:sexp_tag; len1 = %li, len2=%li, len3 = %li\n",
-	      len1, len2, len3);
-      fflush (stdout);
-#endif
-      i = LEN(s->contents.tag);
-      current += i + 2;
-      *copy = s->tag;
-      copy++;
-      *copy = d->tag;
-      copy++;
-      d->tag = (int) copy;
-      copy_elements (copy, obj, i);
-      break;
-
+    break;
   default:
 #ifdef DEBUG_PRINT
     print_indent ();
@@ -1661,12 +1561,11 @@ extern size_t * gc_copy (size_t *obj) {
 #endif
     perror ("ERROR: gc_copy: weird tag");
     exit (1);
-    return (obj);
   }
 #ifdef DEBUG_PRINT
   print_indent ();
-  printf ("gc_copy: %p(%p) -> %p (%p); new-current = %p\n",
-	  obj, objj, copy, newobjj, current);
+  printf ("gc_copy: %p -> %p; new-current = %p\n",
+	  obj, copy, current);
   fflush (stdout);
   indent--;
 #endif
@@ -1684,7 +1583,7 @@ extern void gc_test_and_copy_root (size_t ** root) {
 	    root, __gc_stack_top, __gc_stack_bottom, *root);
     fflush (stdout);
 #endif
-    *root = gc_copy (*root);
+    *root = gc_copy_element (*root);
   }
 #ifdef DEBUG_PRINT
   else {
@@ -1749,13 +1648,13 @@ static void printFromSpace (void) {
   size_t   elem_number = 0;
   
   printf ("\nHEAP SNAPSHOT\n===================\n");
-  printf ("f_begin = %p, f_cur = %p, f_end = %p,\n", from_space.begin, from_space.current, from_space.end);
+  printf ("f_begin = %p, f_cur = %p, f_end = %p, cur = %p, current = %p\n",
+	  from_space.begin, from_space.current, from_space.end, cur, current);
   while (cur < from_space.current && cur < current) {
     printf ("data at %p", cur);
     d  = (data *) cur;
 
-    if ((d->tag & 0x1) == 0) {
-      /* Sexp case */
+    if ((d->tag & 0x1) == 0) { /* Sexp case */
       s = (sexp *) d;
       d = (data *) &(s->contents);
       char * tag = de_hash (GET_SEXP_TAG(s->tag));
@@ -1861,6 +1760,56 @@ static void* gc (size_t size) {
   printf ("gc: no more extra roots\n"); fflush (stdout);
 #endif
 
+  //NEW: copy elements
+  size_t *p = NULL;
+  data *d = NULL;
+  int len = 0;
+  p = to_space.begin;
+  while (p < current) {
+    if ((((data *)p)->tag & 0x1) == 0) { // SEXP case
+#ifdef DEBUG_PRINT
+      printf ("NON_REC: SEXP %p", p); fflush(stdout);
+#endif
+      len = LEN(((sexp*)p)->contents.tag);
+      p += 2;
+    } else { //NON SEXP case
+      d = (data*)(p);
+      switch (TAG(d->tag)) {
+      case STRING_TAG:
+#ifdef DEBUG_PRINT
+	printf ("gc: NON_REC: STRING %p", p); fflush(stdout);
+#endif
+	len = (LEN(d->tag) + sizeof(int)) / sizeof(size_t) + 1;
+	p += len;
+#ifdef DEBUG_PRINT
+	printf ("gc: NON_REC: STRING new p = %p", p); fflush(stdout);
+#endif
+	len = 0;
+	break;
+      case CLOSURE_TAG:
+      case ARRAY_TAG:
+#ifdef DEBUG_PRINT
+	printf ("gc: NON_REC: NON-SEXP %p", p); fflush(stdout);
+#endif
+	p++;
+	len = LEN(d->tag);
+	break;
+      default:
+	perror ("gc: WEIRG TAG: non-rec copying");
+	exit   (1);
+      }
+    }
+#ifdef DEBUG_PRINT
+    printf ("; len = %i\n", len); fflush(stdout);
+#endif
+    for (int i = 0; i < len; i++, p++) {
+      if (!UNBOXED(*p) && *p >= from_space.begin && *p < from_space.current) {
+	*p = gc_copy_element (*p);
+      }
+    }
+  }
+  //END NEW
+  
   if (!IN_PASSIVE_SPACE(current)) {
     printf ("gc: ASSERT: !IN_PASSIVE_SPACE(current) to_begin = %p to_end = %p \
              current = %p\n", to_space.begin, to_space.end, current);
@@ -1927,7 +1876,7 @@ extern void * alloc (size_t size) {
 #ifdef DEBUG_PRINT
   print_indent ();
   printf ("alloc: call gc: %zu\n", size); fflush (stdout);
-  printFromSpace(); fflush (stdout);
+  current = from_space.current; printFromSpace(); fflush (stdout);
   p = gc (size);
   print_indent ();
   printf("alloc: gc END %p %p %p %p\n\n", from_space.begin,
