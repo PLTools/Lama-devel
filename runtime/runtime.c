@@ -1472,23 +1472,15 @@ static void gc_swap_spaces (void) {
 #endif
 }
 
-/* # define IS_VALID_HEAP_POINTER(p)\ */
-/*   (!UNBOXED(p) &&		 \ */
-/*    (size_t)from_space.begin <= (size_t)p &&	 \ */
-/*    (size_t)from_space.end   >  (size_t)p) */
 # define IS_VALID_HEAP_POINTER(p)\
   (!UNBOXED(p) &&		 \
-   (size_t)from_space.begin <= (size_t)p &&	 \
-   (size_t)from_space.current   >=  (size_t)p)
+   (size_t)from_space.begin   <= (size_t)p &&	\
+   (size_t)from_space.current >=  (size_t)p)
 
-/* # define IN_PASSIVE_SPACE(p)	\ */
-/*   ((size_t)to_space.begin <= (size_t)p	&&	\ */
-/*    (size_t)to_space.end   >  (size_t)p) */
 # define IN_PASSIVE_SPACE(p)	\
-  ((size_t)to_space.begin <= (size_t)p	&&	\
-   (size_t)current   >=  (size_t)p)
-    //    (size_t)to_space.current   >  (size_t)p)
-
+  ((size_t)to_space.begin   <= (size_t)p &&	\
+   (size_t)to_space.current >=  (size_t)p)
+    
 # define IS_FORWARD_PTR(p)			\
   (!UNBOXED(p) && IN_PASSIVE_SPACE(p))
 
@@ -1819,8 +1811,7 @@ static void* gc (size_t size) {
     }
   }
   
-  // if (!IN_PASSIVE_SPACE(current)) {
-  if ((to_space.begin > current) || (current > to_space.end)) {
+  if (!IN_PASSIVE_SPACE(current)) {
     printf ("gc: ASSERT: !IN_PASSIVE_SPACE(current) to_begin = %p to_end = %p \
              current = %p\n", to_space.begin, to_space.end, current);
     fflush (stdout);
@@ -1845,7 +1836,6 @@ static void* gc (size_t size) {
     fflush (stdout);
 #endif
   }
-  // assert (IN_PASSIVE_SPACE(current));
   assert (current >= to_space.begin && current <= to_space.end);
   assert (current + size < to_space.end);
 
