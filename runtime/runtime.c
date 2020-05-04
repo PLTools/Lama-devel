@@ -64,8 +64,8 @@ void __post_gc_subst () {}
 
 # define STRING_TAG  0x00000001
 # define ARRAY_TAG   0x00000003
-# define SEXP_TAG    0x00000005
-# define CLOSURE_TAG 0x00000007 
+# define SEXP_TAG    0x0
+# define CLOSURE_TAG 0x00000005
 
 # define LEN(x) ((x & 0xFFFFFFF8) >> 3)
 # define TAG(x)  (x & 0x00000007)
@@ -1457,28 +1457,37 @@ static void gc_swap_spaces (void) {
   from_space.begin   = to_space.begin;
   to_space.begin = t;
   from_space.current = current;
-  to_space.current = NULL;
+  // to_space.current = NULL;
+  to_space.current = to_space.begin;
   t = from_space.end;
   from_space.end = to_space.end;
   to_space.end = t;
   tt = from_space.size;
   from_space.size = to_space.size;
   to_space.size = tt;
-  debug_clear_to_space ();
+  // debug_clear_to_space ();
 #ifdef DEBUG_PRINT
   indent--;
   // debug_clear_to_space ();
 #endif
 }
 
+/* # define IS_VALID_HEAP_POINTER(p)\ */
+/*   (!UNBOXED(p) &&		 \ */
+/*    (size_t)from_space.begin <= (size_t)p &&	 \ */
+/*    (size_t)from_space.end   >  (size_t)p) */
 # define IS_VALID_HEAP_POINTER(p)\
   (!UNBOXED(p) &&		 \
    (size_t)from_space.begin <= (size_t)p &&	 \
-   (size_t)from_space.end   >  (size_t)p)
+   (size_t)from_space.current   >=  (size_t)p)
 
+/* # define IN_PASSIVE_SPACE(p)	\ */
+/*   ((size_t)to_space.begin <= (size_t)p	&&	\ */
+/*    (size_t)to_space.end   >  (size_t)p) */
 # define IN_PASSIVE_SPACE(p)	\
   ((size_t)to_space.begin <= (size_t)p	&&	\
-   (size_t)to_space.end   >  (size_t)p)
+   (size_t)current   >=  (size_t)p)
+    //    (size_t)to_space.current   >  (size_t)p)
 
 # define IS_FORWARD_PTR(p)			\
   (!UNBOXED(p) && IN_PASSIVE_SPACE(p))
@@ -1569,6 +1578,7 @@ extern size_t * gc_copy_element (size_t *obj) {
   fflush (stdout);
   indent--;
 #endif
+  to_space.current = current;
   return copy;
 }
 
@@ -1760,7 +1770,7 @@ static void* gc (size_t size) {
   printf ("gc: no more extra roots\n"); fflush (stdout);
 #endif
 
-  //NEW: copy elements
+  // copy elements
   size_t *p = NULL;
   data *d = NULL;
   int len = 0;
@@ -1808,9 +1818,9 @@ static void* gc (size_t size) {
       }
     }
   }
-  //END NEW
   
-  if (!IN_PASSIVE_SPACE(current)) {
+  // if (!IN_PASSIVE_SPACE(current)) {
+  if ((to_space.begin > current) || (current > to_space.end)) {
     printf ("gc: ASSERT: !IN_PASSIVE_SPACE(current) to_begin = %p to_end = %p \
              current = %p\n", to_space.begin, to_space.end, current);
     fflush (stdout);
@@ -1835,7 +1845,8 @@ static void* gc (size_t size) {
     fflush (stdout);
 #endif
   }
-  assert (IN_PASSIVE_SPACE(current));
+  // assert (IN_PASSIVE_SPACE(current));
+  assert (current >= to_space.begin && current <= to_space.end);
   assert (current + size < to_space.end);
 
   gc_swap_spaces ();
@@ -1869,6 +1880,12 @@ extern void * alloc (size_t size) {
     printf (";new current: %p \n", from_space.current); fflush (stdout);
     indent--;
 #endif
+    // Nullify new memory
+    size_t *p1 = p;
+    for (int i = 0; i < size; p1++, i++) {
+      *p1 = 0;
+    }
+    
     return p;
   }
   
