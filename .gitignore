@@ -2,4 +2,7 @@
 *.cmi
 *.cmx
 *.o
-
+stdlib/regression/*.sm
+stdlib/regression/*.html
+src/lamac
+src/version.ml
