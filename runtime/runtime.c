@@ -62,18 +62,21 @@ void __post_gc_subst () {}
 # endif
 /* end */
 
-/* Invariant: only SEXP_TAG has 0 as the smallest bit */
+# define TAG_BITS    2
+# define TAG_MASK    0x3
 # define SEXP_TAG    0x0
 # define STRING_TAG  0x00000001
-# define ARRAY_TAG   0x00000003
-# define CLOSURE_TAG 0x00000005
+# define ARRAY_TAG   0x00000002
+# define CLOSURE_TAG 0x00000003
 
 # define LEN(x) ((x & 0xFFFFFFF8) >> 3)
-# define TAG(x)  (x & 0x00000007)
+// # define TAG(x)  (x & 0x00000007)
+# define TAG(x)  (x & TAG_MASK)
+# define IS_SEXP(x) ((x & TAG_MASK) == 0)
 
 # define TO_DATA(x) ((data*)((char*)(x)-sizeof(int)))
 # define TO_SEXP(x) ((sexp*)((char*)(x)-2*sizeof(int)))
-# define GET_SEXP_TAG(x) (x >> 1)
+# define GET_SEXP_TAG(x) ((int)(((size_t)x) >> TAG_BITS))
 
 # define UNBOXED(x)  (((int) (x)) &  0x0001)
 # define UNBOX(x)    (((int) (x)) >> 1)
@@ -301,12 +304,13 @@ extern int Blength (void *p) {
   return BOX(LEN(a->tag));
 }
 
-char* de_hash (int n) {
+char* de_hash (int n1) {
   static char *chars = (char*) BOX (NULL);
   static char buf[6] = {0,0,0,0,0,0};
   char *p = (char *) BOX (NULL);
-  chars =  "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  chars =  "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   p = &buf[5];
+  size_t n = n1;
 
 #ifdef DEBUG_PRINT
   indent++; print_indent ();
@@ -318,8 +322,10 @@ char* de_hash (int n) {
   while (n != 0) {
 #ifdef DEBUG_PRINT
     print_indent ();
-    printf ("char: %c\n", chars [n & 0x003F]); fflush (stdout);
+    // printf ("char: %c\n", chars [n & 0x003F]); fflush (stdout);
+    printf ("char: %c %i %i\n", chars [n & 0x003F], n, n & 0x003F); fflush (stdout);
 #endif
+    // *p-- = chars [n & 0x003F];
     *p-- = chars [n & 0x003F];
     n = n >> 6;
   }
@@ -647,7 +653,8 @@ void *Lclone (void *p) {
   return res;
 }
 
-# define HASH_DEPTH 3
+// # define HASH_DEPTH 3
+# define HASH_DEPTH 1
 # define HASH_APPEND(acc, x) (((acc + (unsigned) x) << (WORD_SIZE / 2)) | ((acc + (unsigned) x) >> (WORD_SIZE / 2)))
 
 int inner_hash (int depth, unsigned acc, void *p) {
@@ -1006,7 +1013,7 @@ extern void* Bsexp (int bn, ...) {
     ((int*)d->contents)[i] = ai;
   }
 
-  r->tag = (va_arg(args, int)) << 1;
+  r->tag = ((size_t)(va_arg(args, int))) << TAG_BITS;
 
 #ifdef DEBUG_PRINT
   print_indent ();
@@ -1458,7 +1465,7 @@ static void init_to_space (int flag) {
 #ifdef DEBUG_PRINT
 static void debug_clear_to_space (void) {
   for (size_t * i = to_space.begin; i < to_space.end; i++){
-    *i = NULL;
+    *i = 0x0;
   }
 }
 #endif
@@ -1664,7 +1671,8 @@ static void printFromSpace (void) {
     printf ("data at %p", cur);
     d  = (data *) cur;
 
-    if ((d->tag & 0x1) == 0) { /* Sexp case */
+    switch (TAG(d->tag)) {
+    case SEXP_TAG:
       s = (sexp *) d;
       d = (data *) &(s->contents);
       char * tag = de_hash (GET_SEXP_TAG(s->tag));
@@ -1679,56 +1687,47 @@ static void printFromSpace (void) {
       len += 2;
       printf ("\n");
       fflush (stdout);
-    } else { /* non-sexp case */
-      switch (TAG(d->tag)) {
+      break;
+	
+    case STRING_TAG:
+      printf ("(=>%p): STRING\n\t%s; len = %i %zu\n",
+	      d->contents, d->contents,
+	      LEN(d->tag), LEN(d->tag) + 1 + sizeof(int));
+      fflush (stdout);
+      len = (LEN(d->tag) + sizeof(int)) / sizeof(size_t) + 1;
+      break;
 
-      case STRING_TAG:
-	printf ("(=>%p): STRING\n\t%s; len = %i %zu\n",
-		d->contents, d->contents,
-		LEN(d->tag), LEN(d->tag) + 1 + sizeof(int));
-	fflush (stdout);
-	len = (LEN(d->tag) + sizeof(int)) / sizeof(size_t) + 1;
-	break;
-
-      case CLOSURE_TAG:
-	printf ("(=>%p): CLOSURE\n\t", d->contents);
-	len = LEN(d->tag);
-	for (int i = 0; i < len; i++) {
-	  int elem = ((int*)d->contents)[i];
-	  if (UNBOXED(elem)) printf ("%d ", elem);
-	  else printf ("%p ", elem);
-	}
-	len += 1;
-	printf ("\n");
-	fflush (stdout);
-	break;
-
-      case ARRAY_TAG:
-	printf ("(=>%p): ARRAY\n\t", d->contents);
-	len = LEN(d->tag);
-	for (int i = 0; i < len; i++) {
-	  int elem = ((int*)d->contents)[i];
-	  if (UNBOXED(elem)) printf ("%d ", elem);
-	  else printf ("%p ", elem);
-	}
-	len += 1;
-	printf ("\n");
-	fflush (stdout);
-	break;
-
-      case 0:
-	printf ("\nprintFromSpace: end: %zu elements\n===================\n\n",
-		elem_number);
-	perror ("trololo: printFromSpace");
-	exit (1);
-	return;
-
-      default:
-	printf ("\nprintFromSpace: ERROR: bad tag %d", TAG(d->tag));
-	perror ("\nprintFromSpace: ERROR: bad tag");
-	fflush (stdout);
-	exit   (1);
+    case CLOSURE_TAG:
+      printf ("(=>%p): CLOSURE\n\t", d->contents);
+      len = LEN(d->tag);
+      for (int i = 0; i < len; i++) {
+	int elem = ((int*)d->contents)[i];
+	if (UNBOXED(elem)) printf ("%d ", elem);
+	else printf ("%p ", elem);
       }
+      len += 1;
+      printf ("\n");
+      fflush (stdout);
+      break;
+
+    case ARRAY_TAG:
+      printf ("(=>%p): ARRAY\n\t", d->contents);
+      len = LEN(d->tag);
+      for (int i = 0; i < len; i++) {
+	int elem = ((int*)d->contents)[i];
+	if (UNBOXED(elem)) printf ("%d ", elem);
+	else printf ("%p ", elem);
+      }
+      len += 1;
+      printf ("\n");
+      fflush (stdout);
+      break;
+
+    default:
+      printf ("\nprintFromSpace: ERROR: bad tag %d", TAG(d->tag));
+      perror ("\nprintFromSpace: ERROR: bad tag");
+      fflush (stdout);
+      exit   (1);
     }
     cur += len;
     printf ("len = %zu, new cur = %p\n", len, cur);
@@ -1776,15 +1775,15 @@ static void* gc (size_t size) {
   int len = 0;
   p = to_space.begin;
   while (p < current) {
-    if ((((data *)p)->tag & 0x1) == 0) { // SEXP case
-#ifdef DEBUG_PRINT
-      printf ("NON_REC: SEXP %p", p); fflush(stdout);
-#endif
-      len = LEN(((sexp*)p)->contents.tag);
-      p += 2;
-    } else { // NON SEXP case
       d = (data*)(p);
       switch (TAG(d->tag)) {
+      case SEXP_TAG:
+#ifdef DEBUG_PRINT
+	printf ("gc: NON_REC: SEXP %p", p); fflush(stdout);
+#endif
+	len = LEN(((sexp*)p)->contents.tag);
+	p += 2;
+	break;
       case STRING_TAG:
 #ifdef DEBUG_PRINT
 	printf ("gc: NON_REC: STRING %p", p); fflush(stdout);
@@ -1808,7 +1807,6 @@ static void* gc (size_t size) {
 	perror ("gc: WEIRG TAG: non-rec copying");
 	exit   (1);
       }
-    }
 #ifdef DEBUG_PRINT
     printf ("; len = %i\n", len); fflush(stdout);
 #endif
