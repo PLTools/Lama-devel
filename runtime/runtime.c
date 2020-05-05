@@ -62,9 +62,10 @@ void __post_gc_subst () {}
 # endif
 /* end */
 
+/* Invariant: only SEXP_TAG has 0 as the smallest bit */
+# define SEXP_TAG    0x0
 # define STRING_TAG  0x00000001
 # define ARRAY_TAG   0x00000003
-# define SEXP_TAG    0x0
 # define CLOSURE_TAG 0x00000005
 
 # define LEN(x) ((x & 0xFFFFFFF8) >> 3)
@@ -534,6 +535,7 @@ extern void* Lsubstring (void *subj, int p, int l) {
     r->tag = STRING_TAG | (ll << 3);
 
     strncpy (r->contents, (char*) subj + pp, ll);
+    ((char*)(r->contents))[ll] = '\0';
     
     __post_gc ();
 
@@ -1004,7 +1006,6 @@ extern void* Bsexp (int bn, ...) {
     ((int*)d->contents)[i] = ai;
   }
 
-  // new invariant: only Sexp tag (s->tag) has 0 as smallest bit 
   r->tag = (va_arg(args, int)) << 1;
 
 #ifdef DEBUG_PRINT
@@ -1156,6 +1157,7 @@ extern void* /*Lstrcat*/ Li__Infix_4343 (void *a, void *b) {
 
   strncpy (d->contents               , da->contents, LEN(da->tag));
   strncpy (d->contents + LEN(da->tag), db->contents, LEN(db->tag));
+  d->contents[LEN(da->tag) + LEN(db->tag)] = '\0';
   
   d->contents[LEN(da->tag) + LEN(db->tag)] = 0;
 
@@ -1453,9 +1455,13 @@ static void init_to_space (int flag) {
   to_space.size    = SPACE_SIZE;
 }
 
-// #ifdef DEBUG_PRINT
-extern void debug_clear_to_space (void);
-// #endif
+#ifdef DEBUG_PRINT
+static void debug_clear_to_space (void) {
+  for (size_t * i = to_space.begin; i < to_space.end; i++){
+    *i = NULL;
+  }
+}
+#endif
 
 static void gc_swap_spaces (void) {
 #ifdef DEBUG_PRINT
@@ -1467,7 +1473,6 @@ static void gc_swap_spaces (void) {
   from_space.begin   = to_space.begin;
   to_space.begin = t;
   from_space.current = current;
-  // to_space.current = NULL;
   to_space.current = to_space.begin;
   t = from_space.end;
   from_space.end = to_space.end;
@@ -1475,10 +1480,9 @@ static void gc_swap_spaces (void) {
   tt = from_space.size;
   from_space.size = to_space.size;
   to_space.size = tt;
-  // debug_clear_to_space ();
 #ifdef DEBUG_PRINT
   indent--;
-  // debug_clear_to_space ();
+  debug_clear_to_space ();
 #endif
 }
 
@@ -1515,7 +1519,7 @@ extern size_t * gc_copy_element (size_t *obj) {
   data   *d    = TO_DATA(obj);
   sexp   *s    = NULL;
   size_t *copy = NULL;
-  int i = 0;
+  int i = 0, j=0;
   copy = current;
 
   if (IS_FORWARD_PTR(d->tag)) {
@@ -1529,6 +1533,7 @@ extern size_t * gc_copy_element (size_t *obj) {
     print_indent ();
     printf ("gc_copy:string_tag; len = %d\n", LEN(d->tag) + 1); fflush (stdout);
 #endif
+    j = LEN(d->tag) + 1;
     current += (LEN(d->tag) + sizeof(int)) / sizeof(size_t) + 1;
     *copy = d->tag;
     copy++;
@@ -1642,13 +1647,6 @@ extern void init_pool (void) {
   to_space.end       = to_space.begin;
   to_space.size      = 0;
   init_extra_roots ();
-}
-
-// #ifdef DEBUG_PRINT
-void debug_clear_to_space (void) {
-  for (size_t * i = to_space.begin; i < to_space.end; i++){
-    *i = NULL;
-  }
 }
 
 #ifdef DEBUG_PRINT
@@ -1784,7 +1782,7 @@ static void* gc (size_t size) {
 #endif
       len = LEN(((sexp*)p)->contents.tag);
       p += 2;
-    } else { //NON SEXP case
+    } else { // NON SEXP case
       d = (data*)(p);
       switch (TAG(d->tag)) {
       case STRING_TAG:
@@ -1879,13 +1877,10 @@ extern void * alloc (size_t size) {
     print_indent ();
     printf (";new current: %p \n", from_space.current); fflush (stdout);
     indent--;
-#endif
     // Nullify new memory
     size_t *p1 = p;
-    for (int i = 0; i < size; p1++, i++) {
-      *p1 = 0;
-    }
-    
+    for (int i = 0; i < size; p1++, i++) { *p1 = 0; }
+#endif    
     return p;
   }
   
