@@ -69,13 +69,12 @@ void __post_gc_subst () {}
 # define ARRAY_TAG   0x00000002
 # define CLOSURE_TAG 0x00000003
 
-# define LEN(x) ((x & 0xFFFFFFF8) >> 3)
-// # define TAG(x)  (x & 0x00000007)
+# define LEN(x) ((x & ((0xFFFFFFFF >> TAG_BITS) << TAG_BITS)) >> TAG_BITS)
 # define TAG(x)  (x & TAG_MASK)
 # define IS_SEXP(x) ((x & TAG_MASK) == 0)
 
-# define TO_DATA(x) ((data*)((char*)(x)-sizeof(int)))
-# define TO_SEXP(x) ((sexp*)((char*)(x)-2*sizeof(int)))
+# define TO_DATA(x) ((data*)((char*)(x) - sizeof(int)))
+# define TO_SEXP(x) ((sexp*)((char*)(x) - 2 * sizeof(int)))
 # define GET_SEXP_TAG(x) ((int)(((size_t)x) >> TAG_BITS))
 
 # define UNBOXED(x)  (((int) (x)) &  0x0001)
@@ -140,7 +139,7 @@ void pop_extra_root (void ** p) {
 
 static void vfailure (char *s, va_list args) {
   fprintf  (stderr, "*** FAILURE: ");
-  vfprintf (stderr, s, args); // vprintf (char *, va_list) <-> printf (char *, ...)
+  vfprintf (stderr, s, args); /* vprintf (char *, va_list) <-> printf (char *, ...) */
   exit     (255);
 }
 
@@ -174,7 +173,7 @@ extern void* Bsexp (int n, ...);
 
 void *global_sysargs;
 
-// Functional synonym for built-in operator ":";
+/* Functional synonym for built-in operator ":"; */
 void* Ls__Infix_58 (void *p, void *q) {
   void *res;
   
@@ -191,7 +190,7 @@ void* Ls__Infix_58 (void *p, void *q) {
   return res;
 }
 
-// Functional synonym for built-in operator "!!";
+/* Functional synonym for built-in operator "!!"; */
 int Ls__Infix_3333 (void *p, void *q) {
   ASSERT_UNBOXED("captured !!:1", p);
   ASSERT_UNBOXED("captured !!:2", q);
@@ -199,7 +198,7 @@ int Ls__Infix_3333 (void *p, void *q) {
   return BOX(UNBOX(p) || UNBOX(q));
 }
 
-// Functional synonym for built-in operator "&&";
+/* Functional synonym for built-in operator "&&"; */
 int Ls__Infix_3838 (void *p, void *q) {
   ASSERT_UNBOXED("captured &&:1", p);
   ASSERT_UNBOXED("captured &&:2", q);
@@ -207,7 +206,7 @@ int Ls__Infix_3838 (void *p, void *q) {
   return BOX(UNBOX(p) && UNBOX(q));
 }
 
-// Functional synonym for built-in operator "==";
+/* Functional synonym for built-in operator "=="; */
 int Ls__Infix_6161 (void *p, void *q) {
   ASSERT_UNBOXED("captured ==:1", p);
   ASSERT_UNBOXED("captured ==:2", q);
@@ -215,7 +214,7 @@ int Ls__Infix_6161 (void *p, void *q) {
   return BOX(UNBOX(p) == UNBOX(q));
 }
 
-// Functional synonym for built-in operator "!=";
+/* Functional synonym for built-in operator "!="; */
 int Ls__Infix_3361 (void *p, void *q) {
   ASSERT_UNBOXED("captured !=:1", p);
   ASSERT_UNBOXED("captured !=:2", q);
@@ -223,7 +222,7 @@ int Ls__Infix_3361 (void *p, void *q) {
   return BOX(UNBOX(p) != UNBOX(q));
 }
 
-// Functional synonym for built-in operator "<=";
+/* Functional synonym for built-in operator "<="; */
 int Ls__Infix_6061 (void *p, void *q) {
   ASSERT_UNBOXED("captured <=:1", p);
   ASSERT_UNBOXED("captured <=:2", q);
@@ -231,7 +230,7 @@ int Ls__Infix_6061 (void *p, void *q) {
   return BOX(UNBOX(p) <= UNBOX(q));
 }
 
-// Functional synonym for built-in operator "<";
+/* Functional synonym for built-in operator "<"; */
 int Ls__Infix_60 (void *p, void *q) {
   ASSERT_UNBOXED("captured <:1", p);
   ASSERT_UNBOXED("captured <:2", q);
@@ -239,7 +238,7 @@ int Ls__Infix_60 (void *p, void *q) {
   return BOX(UNBOX(p) < UNBOX(q));
 }
 
-// Functional synonym for built-in operator ">=";
+/* Functional synonym for built-in operator ">="; */
 int Ls__Infix_6261 (void *p, void *q) {
   ASSERT_UNBOXED("captured >=:1", p);
   ASSERT_UNBOXED("captured >=:2", q);
@@ -247,7 +246,7 @@ int Ls__Infix_6261 (void *p, void *q) {
   return BOX(UNBOX(p) >= UNBOX(q));
 }
 
-// Functional synonym for built-in operator ">";
+/* Functional synonym for built-in operator ">"; */
 int Ls__Infix_62 (void *p, void *q) {
   ASSERT_UNBOXED("captured >:1", p);
   ASSERT_UNBOXED("captured >:2", q);
@@ -255,7 +254,7 @@ int Ls__Infix_62 (void *p, void *q) {
   return BOX(UNBOX(p) > UNBOX(q));
 }
 
-// Functional synonym for built-in operator "+";
+/* Functional synonym for built-in operator "+"; */
 int Ls__Infix_43 (void *p, void *q) {
   ASSERT_UNBOXED("captured +:1", p);
   ASSERT_UNBOXED("captured +:2", q);
@@ -263,7 +262,7 @@ int Ls__Infix_43 (void *p, void *q) {
   return BOX(UNBOX(p) + UNBOX(q));
 }
 
-// Functional synonym for built-in operator "-";
+/* Functional synonym for built-in operator "-"; */
 int Ls__Infix_45 (void *p, void *q) {
   ASSERT_UNBOXED("captured -:1", p);
   ASSERT_UNBOXED("captured -:2", q);
@@ -271,7 +270,7 @@ int Ls__Infix_45 (void *p, void *q) {
   return BOX(UNBOX(p) - UNBOX(q));
 }
 
-// Functional synonym for built-in operator "*";
+/* Functional synonym for built-in operator "*"; */
 int Ls__Infix_42 (void *p, void *q) {
   ASSERT_UNBOXED("captured *:1", p);
   ASSERT_UNBOXED("captured *:2", q);
@@ -279,7 +278,7 @@ int Ls__Infix_42 (void *p, void *q) {
   return BOX(UNBOX(p) * UNBOX(q));
 }
 
-// Functional synonym for built-in operator "/";
+/* Functional synonym for built-in operator "/"; */
 int Ls__Infix_47 (void *p, void *q) {
   ASSERT_UNBOXED("captured /:1", p);
   ASSERT_UNBOXED("captured /:2", q);
@@ -287,7 +286,7 @@ int Ls__Infix_47 (void *p, void *q) {
   return BOX(UNBOX(p) / UNBOX(q));
 }
 
-// Functional synonym for built-in operator "%";
+/* Functional synonym for built-in operator "%"; */
 int Ls__Infix_37 (void *p, void *q) {
   ASSERT_UNBOXED("captured %:1", p);
   ASSERT_UNBOXED("captured %:2", q);
@@ -322,10 +321,8 @@ char* de_hash (int n1) {
   while (n != 0) {
 #ifdef DEBUG_PRINT
     print_indent ();
-    // printf ("char: %c\n", chars [n & 0x003F]); fflush (stdout);
     printf ("char: %c %i %i\n", chars [n & 0x003F], n, n & 0x003F); fflush (stdout);
 #endif
-    // *p-- = chars [n & 0x003F];
     *p-- = chars [n & 0x003F];
     n = n >> 6;
   }
@@ -538,7 +535,7 @@ extern void* Lsubstring (void *subj, int p, int l) {
     r = (data*) alloc (ll + 1 + sizeof (int));
     pop_extra_root (&subj);
 
-    r->tag = STRING_TAG | (ll << 3);
+    r->tag = STRING_TAG | (ll << TAG_BITS);
 
     strncpy (r->contents, (char*) subj + pp, ll);
     ((char*)(r->contents))[ll] = '\0';
@@ -810,8 +807,8 @@ extern void* LmakeArray (int length) {
   n = UNBOX(length);
   r = (data*) alloc (sizeof(int) * (n+1));
 
-  r->tag = ARRAY_TAG | (n << 3);
-
+  r->tag = ARRAY_TAG | (n << TAG_BITS);
+  
   memset (r->contents, 0, n * sizeof(int));
   
   __post_gc ();
@@ -828,7 +825,7 @@ extern void* LmakeString (int length) {
   __pre_gc () ;
   
   r = (data*) alloc (n + 1 + sizeof (int));
-  r->tag = STRING_TAG | (n << 3);
+  r->tag = STRING_TAG | (n << TAG_BITS);
 
   __post_gc();
   
@@ -923,7 +920,7 @@ extern void* Bclosure (int bn, void *entry, ...) {
 
   r = (data*) alloc (sizeof(int) * (n+2));
   
-  r->tag = CLOSURE_TAG | ((n + 1) << 3);
+  r->tag = CLOSURE_TAG | ((n + 1) << TAG_BITS);
   ((void**) r->contents)[0] = entry;
   
   va_start(args, entry);
@@ -965,7 +962,7 @@ extern void* Barray (int bn, ...) {
 #endif
   r = (data*) alloc (sizeof(int) * (n+1));
 
-  r->tag = ARRAY_TAG | (n << 3);
+  r->tag = ARRAY_TAG | (n << TAG_BITS);
   
   va_start(args, n);
   
@@ -1002,7 +999,7 @@ extern void* Bsexp (int bn, ...) {
   d = &(r->contents);
   r->tag = 0;
     
-  d->tag = SEXP_TAG | ((n-1) << 3);
+  d->tag = SEXP_TAG | ((n-1) << TAG_BITS);
   
   va_start(args, n);
   
@@ -1160,8 +1157,8 @@ extern void* /*Lstrcat*/ Li__Infix_4343 (void *a, void *b) {
   da = TO_DATA(a);
   db = TO_DATA(b);
   
-  d->tag = STRING_TAG | ((LEN(da->tag) + LEN(db->tag)) << 3);
-
+  d->tag = STRING_TAG | ((LEN(da->tag) + LEN(db->tag)) << TAG_BITS);
+ 
   strncpy (d->contents               , da->contents, LEN(da->tag));
   strncpy (d->contents + LEN(da->tag), db->contents, LEN(db->tag));
   d->contents[LEN(da->tag) + LEN(db->tag)] = '\0';
@@ -1428,11 +1425,11 @@ extern void __gc_root_scan_stack ();
 /* ======================================== */
 
 static size_t SPACE_SIZE = 16;
-// static size_t SPACE_SIZE = 1024 * 1024;
-// static size_t SPACE_SIZE = 128 * 1024;
-// static size_t SPACE_SIZE = 128;
-// static size_t SPACE_SIZE = 1024;
-static size_t MAX_SPACE_SIZE = 1024*1024;
+/* static size_t SPACE_SIZE = 1024 * 1024; */
+/* static size_t SPACE_SIZE = 128 * 1024; */
+/* static size_t SPACE_SIZE = 128; */
+/* static size_t SPACE_SIZE = 1024; */
+static size_t MAX_SPACE_SIZE = 1024 * 1024 * 1024;
 
 static int free_pool (pool * p) {
   size_t *a = p->begin, b = p->size;
@@ -1769,7 +1766,7 @@ static void* gc (size_t size) {
   printf ("gc: no more extra roots\n"); fflush (stdout);
 #endif
 
-  // copy elements
+  /* copy elements */
   size_t *p = NULL;
   data *d = NULL;
   int len = 0;
@@ -1859,10 +1856,10 @@ static void* gc (size_t size) {
 }
 
 #ifdef __ENABLE_GC__
-// alloc: allocates `size` bytes in heap
+/* alloc: allocates `size` bytes in heap */
 extern void * alloc (size_t size) {
   void * p = (void*)BOX(NULL);
-  size = (size - 1) / sizeof(size_t) + 1; // convert bytes to words
+  size = (size - 1) / sizeof(size_t) + 1; /* convert bytes to words */
 #ifdef DEBUG_PRINT
   indent++; print_indent ();
   printf ("alloc: current: %p %zu words!", from_space.current, size);
@@ -1875,7 +1872,7 @@ extern void * alloc (size_t size) {
     print_indent ();
     printf (";new current: %p \n", from_space.current); fflush (stdout);
     indent--;
-    // Nullify new memory
+    /* Nullify new memory */
     size_t *p1 = p;
     for (int i = 0; i < size; p1++, i++) { *p1 = 0; }
 #endif    
