@@ -4,6 +4,28 @@ import Collection;
 
 local tab = emptyHashTab ();
 
+--fun root (node, tab) {
+--  case node of
+--    Node (x, prnt) ->
+--      local res = root (prnt);
+--      [res.fst, changeHashTab (res.snd, x, Node (x, res.fst))]
+--  | Root (x) -> [node, tab]
+--  esac
+--}
+
+fun root (x, tab) {
+  local yy = findHashTab (tab, (x [0]));
+  case yy of
+    Some (y) ->
+      if (x == y) then [x, tab]
+      else
+        local z = root (y, tab);
+        [z.fst, changeHashTab (z.snd, (x [0]), z.fst)]
+      fi
+  | None -> [x, tab]
+  esac
+}
+
 public fun equal (x, y) {
   case x of
     #unboxed ->
@@ -19,38 +41,15 @@ public fun equal (x, y) {
   | #fun ->
     case y of
       #fun ->
-        local resx = findMap (tab, (x [0])),
-              resy = findMap (tab, (y [0]));
-        local alreadyEqual =
-          case resx of
-            Some (r1) ->
-              case resy of
-                Some (r2) -> (r1 [0] == r2 [0])
-              | None -> false
-              esac
-          | None -> false
-          esac;
-        if alreadyEqual           then true
-        elif x.length != y.length then false
-        elif x.length == 1        then (x [0] == y [0])
+        local resx = root (x, tab),
+              resy = root (y, resx.snd);
+        tab := resy.snd;
+        if (resx.fst) == (resy.fst) then true
+        elif x.length != y.length   then false
+        elif x.length == 1          then (x [0] == y [0])
         else
           local i = 1, ans = true;
-          case resx of
-            Some (r1) ->
-              case resy of
-                Some (r2) -> tab := changeHashTab (tab, (y [0]), r1)
-              | None -> tab := addHashTab (tab, (y [0]), r1)
-              esac
-          | None ->
-              case resy of
-                Some (r2) -> tab := addHashTab (tab, (x [0]), r2)
-              | None ->
-                local r = ref (fun (x) {x});
-                tab := addHashTab (tab, (x [0]), r);
-                tab := addHashTab (tab, (y [0]), r)
-                --printf ("%d and %d added to tab \n", x [0], y [0])
-              esac
-          esac;
+          tab := changeHashTab (tab, (x[0]), resy.fst);
           for skip, i < x.length, i := i + 1 do
             ans := ans && equal (x [i], y [i])
           od;
