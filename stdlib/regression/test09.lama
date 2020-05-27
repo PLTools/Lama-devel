@@ -1,11 +1,13 @@
 import Ostap;
 import Matcher;
 
-local a = token ("a"), acc;
+local a = observe ("a", token ("a")), acc;
 
 --printf ("Parsing a| against ""a""... %s\n", parseString (a |> fun (x) {printf ("trying eof\n"); eof @ lift (x)}, "a").string);
 
-printf ("Parsing seq a a| against ""aa""... %s\n", parseString (a |> fun (y) {a |> fun (x) {printf ("trying eof\n")}}, "aa").string)
+printf ("Parsing seq a a| against ""aa""... %s\n", 
+parseString (a |> fun (y) {a |> fun (x) {printf ("trying eof\n")}}, 
+             "aa").string)
 
 --printf ("Parsing a*| against ""aa""... %s\n", parseString (rep0 (a) |> fun (x) {eof @ lift (x)}, "aa").string);
 --printf ("Parsing a+| against ""aa""... %s\n", parseString (rep  (a) |> fun (x) {eof @ lift (x)}, "aa").string);

@@ -62,18 +62,23 @@ fun createMatcher (buf, pos, line, col) {
   }
 
   fun eof () {
+    printf ("eof called...\n");
     if rest () == 0
     then Succ ("", shift (0))
     else Fail ("EOF expected", line, col)
     fi
   }
 
-  [show,
+  local r = [show,
    eof,
    matchString,
    matchRegexp,
    fun () {line},
-   fun () {col}]
+   fun () {col}];
+
+  printf ("eof in createMatcher: %s\n", eof.string);
+  printf ("array in createMatcher: %s\n", r.string);
+  r
 }
 
 public fun showMatcher (m) {
@@ -85,6 +90,7 @@ public fun endOfMatcher (m) {
 }
 
 public fun matchString (m, s) {
+  printf ("matchString: %s\n", m[2].string);
   m [2] (s)
 }
 
