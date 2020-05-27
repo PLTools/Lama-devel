@@ -102,8 +102,8 @@ public fun seq (a, b) {
       if log then printf ("Running seq at %s\n", s.string) fi;
       a (fun (ar) {
                   case ar of
-                    Succ (x, s) -> printf ("Running second part of seq at %s\n", s.string); b (x) (k) (s)
-                  | _           -> printf ("Seq failed\n"); k (ar)
+                    Succ (x, s) -> if log then printf ("Running second part of seq at %s\n", s.string) fi; b (x) (k) (s)
+                  | _           -> if log then printf ("Seq failed\n") fi; k (ar)
                   esac
          }) (s)
     }
