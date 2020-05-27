@@ -7,6 +7,8 @@
 import List;
 import Ref;
 
+local tab = {};
+
 fun printColl (m) {
   fun inner (off, curr) {
     printf (off);
@@ -25,21 +27,8 @@ fun printColl (m) {
   inner ("", m)
 }
 
-fun makeCompare (sort) {
-  case sort of
-    Hash -> fun (x, y) {
-              if   x == y then 0
-              elif x < y  then -1
-              else 1
-              fi
-            }
-  | _    -> compare
-  esac
-}
-
-fun insertColl (m, pk, v, sort) {
-  local compareKeys = makeCompare (sort),
-        k = case sort of Hash -> hash (pk) | _ -> pk esac;
+fun almostInsertColl (m, pk, v, sort, compareKeys) {
+  local k = case sort of Hash -> hash (pk) | _ -> pk esac;
 
   fun append (v, vs) {
     case sort of
@@ -110,9 +99,8 @@ fun insertColl (m, pk, v, sort) {
   inner (m).snd
 }
 
-fun findColl (m, pk, sort) {
-  local compareKeys = makeCompare (sort),
-        k = case sort of Hash -> hash (pk) | _ -> pk esac;
+fun almostFindColl (m, pk, sort, compareKeys) {
+  local k = case sort of Hash -> hash (pk) | _ -> pk esac;
 
   fun extract (vv) {
     case sort of
@@ -140,9 +128,8 @@ fun findColl (m, pk, sort) {
   inner (m)
 }
 
-fun removeColl (m, pk, sort) {
-  local compareKeys = makeCompare (sort),
-        k = case sort of Hash -> hash (pk) | _ -> pk esac;
+fun almostRemoveColl (m, pk, sort, compareKeys) {
+  local k = case sort of Hash -> hash (pk) | _ -> pk esac;
 
   fun delete (vs) {
     case sort of
@@ -170,9 +157,8 @@ fun removeColl (m, pk, sort) {
   inner (m)
 }
 
-fun changeColl (m, pk, v, sort) {
-  local compareKeys = makeCompare (sort),
-        k = case sort of Hash -> hash (pk) | _ -> pk esac;
+fun almostChangeColl (m, pk, v, sort, compareKeys) {
+  local k = case sort of Hash -> hash (pk) | _ -> pk esac;
 
   fun change (vs) {
     case sort of
@@ -238,6 +224,125 @@ public fun validateColl (t) {
   }
 
   inner (t, fun (x) {true})
+}
+
+fun hashCmp (x, y) {
+  if   x == y then 0
+  elif x < y  then -1
+  else 1
+  fi
+}
+
+fun root (x, tab) {
+  local yy = almostFindColl (tab, (x [0]), Hash, hashCmp);
+  case yy of
+    Some (y) ->
+      if (x == y) then [x, tab]
+      else
+        local z = root (y, tab);
+        [z.fst, almostChangeColl (z.snd, (x [0]), z.fst, Hash, hashCmp)]
+      fi
+  | None -> [x, tab]
+  esac
+}
+
+fun compareTags (x, y) {
+  case x of
+    #unboxed ->
+      case y of
+        #unboxed -> 0
+      | _ -> -1
+      esac
+  | #string ->
+    case y of
+      #unboxed -> 1
+    | #string -> 0
+    | _ -> -1
+    esac
+  | #array ->
+    case y of
+      #unboxed -> 1
+    | #string -> 1
+    | #array -> 0
+    | _ -> -1
+    esac
+  | #sexp ->
+    case y of
+      #unboxed -> 1
+    | #string -> 1
+    | #array -> 1
+    | #sexp -> 0
+    | _ -> -1
+    esac
+  | #fun ->
+    case y of
+      #unboxed -> 1
+    | #string -> 1
+    | #array -> 1
+    | #sexp -> 1
+    | #fun -> 0
+    | _ -> -1
+    esac
+  esac
+}
+
+fun cmp (x, y) {
+--  local tab = {};
+
+  fun inner (x, y) {
+    local diffTags = compareTags (x, y);
+    if diffTags == 0 then
+      case x of
+        #unboxed -> compare (x, y)
+      | #string -> compare (x, y)
+      | #fun ->
+        local resx = root (x, tab),
+              resy = root (y, resx.snd);
+        tab := resy.snd;
+        if (resx.fst) == (resy.fst) then 0
+        elif x.length != y.length   then x.length - y.length
+        elif x.length == 1          then x [0] - y [0]
+        else
+          local i = 1, ans = 0;
+          tab := almostChangeColl (tab, (x [0]), resy.fst, Hash, hashCmp);
+          for skip, i < x.length, i := i + 1 do
+            local c = cmp (x [i], y [i]);
+            if (c != 0) && (ans == 0) then ans := c fi
+          od;
+          ans
+        fi
+      | _ ->
+        if (x.length != y.length) then x.length - y.length
+        elif (x.length == 0) then compare (x, y)
+        else
+          local i = 0, ans = 0;
+          for skip, i < x.length, i := i + 1 do
+            local c = cmp (x [i], y [i]);
+            if (c != 0) && (ans == 0) then ans := c fi
+          od;
+          ans
+        fi
+      esac
+    else diffTags fi
+  }
+
+  inner (x, y)
+}
+
+fun insertColl (m, pk, v, sort) {
+  almostInsertColl (m, pk, v, sort, cmp)
+}
+
+fun findColl (m, pk, sort) {
+  almostFindColl (m, pk, sort, cmp)
+}
+
+fun removeColl (m, pk, sort) {
+  almostRemoveColl (m, pk, sort, cmp)
+}
+
+fun changeColl (m, pk, v, sort) {
+  almostChangeColl (m, pk, v, sort, cmp)
 }
 
 -- Map structure
@@ -357,17 +462,19 @@ public fun emptyHashTab () {
 }
 
 public fun addHashTab (t, k, v) {
-  insertColl (t, k, v, Hash)
+  insertColl (t, k, v, Hash, cmp)
 }
 
 public fun findHashTab (t, k) {
-  findColl (t, k, Hash)
+  findColl (t, k, Hash, cmp)
 }
 
 public fun removeHashTab (t, k) {
-  removeColl (t, k, Hash)
+  removeColl (t, k, Hash, cmp)
 }
 
 public fun changeHashTab (t, k, v) {
-  changeColl (t, k, v, Hash)
+  changeColl (t, k, v, Hash, cmp)
 }
+
+public fun compare2 (x, y) {cmp (x, y)}

@@ -28,16 +28,8 @@ fun root (x, tab) {
 
 public fun equal (x, y) {
   case x of
-    #unboxed ->
-      case y of
-        #unboxed -> x == y
-      | _ -> false
-      esac
-  | #string ->
-    case y of
-      #string -> x == y
-    | _ -> false
-    esac
+    #unboxed -> (compare (x, y) == 0)
+  | #string -> (compare (x, y) == 0)
   | #fun ->
     case y of
       #fun ->

@@ -3,8 +3,12 @@ import Matcher;
 
 local a = token ("a"), acc;
 
-printf ("Parsing a*| against ""aa""... %s\n", parseString (rep0 (a) |> fun (x) {eof @ lift (x)}, "aa").string);
-printf ("Parsing a+| against ""aa""... %s\n", parseString (rep  (a) |> fun (x) {eof @ lift (x)}, "aa").string);
-printf ("Parsing list(a)| against ""a""... %s\n", parseString (list (a) |> bypass (eof), "a").string);
-printf ("Parsing list(a)| against ""a,a""... %s\n", parseString (list (a) |> bypass (eof), "a,a").string);
-printf ("Parsing list0(a)| against """"... %s\n", parseString (list0 (a) |> bypass (eof), "").string)
+--printf ("Parsing a| against ""a""... %s\n", parseString (a |> fun (x) {printf ("trying eof\n"); eof @ lift (x)}, "a").string);
+
+printf ("Parsing seq a a| against ""aa""... %s\n", parseString (a |> fun (y) {a |> fun (x) {printf ("trying eof\n")}}, "aa").string)
+
+--printf ("Parsing a*| against ""aa""... %s\n", parseString (rep0 (a) |> fun (x) {eof @ lift (x)}, "aa").string);
+--printf ("Parsing a+| against ""aa""... %s\n", parseString (rep  (a) |> fun (x) {eof @ lift (x)}, "aa").string);
+--printf ("Parsing list(a)| against ""a""... %s\n", parseString (list (a) |> bypass (eof), "a").string);
+--printf ("Parsing list(a)| against ""a,a""... %s\n", parseString (list (a) |> bypass (eof), "a,a").string);
+--printf ("Parsing list0(a)| against """"... %s\n", parseString (list0 (a) |> bypass (eof), "").string)

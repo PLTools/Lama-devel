@@ -24,16 +24,16 @@ public fun initOstap () {
 
 public fun memo (f) {
   f := lookupMemo (hct, f);
-  
+
   if log then printf ("Memoizing %x=%s\n", f, f.string) fi;
-  
+
   case findHashTab (deref (tab), f) of
     None      -> if log then printf ("new table...\n") fi;
                  tab ::= addHashTab (deref (tab), f, ref (emptyMap ()))
-                 
+
   | Some (tt) -> skip
   esac;
-  
+
   fun (k) {
     fun (s) {
       local t =
@@ -56,7 +56,7 @@ public fun memo (f) {
                      iterSet (fun (k) {k (r)}, ks)
                    fi
                esac
-             }          
+             }
             )
             (s)
       | Some ([ks, rs]) ->
@@ -85,7 +85,7 @@ public fun empty (k) {
 }
 
 public fun alt (a, b) {
-  memo $ 
+  memo $
   fun (k) {
     fun (s) {
       if log then printf ("Running alt at %s\n", s.string) fi;
@@ -96,14 +96,14 @@ public fun alt (a, b) {
 }
 
 public fun seq (a, b) {
-  memo $ 
+  memo $
   fun (k) {
     fun (s) {
       if log then printf ("Running seq at %s\n", s.string) fi;
       a (fun (ar) {
-                  case ar of             
-                    Succ (x, s) -> b (x) (k) (s)
-                  | _           -> k (ar)
+                  case ar of
+                    Succ (x, s) -> printf ("Running second part of seq at %s\n", s.string); b (x) (k) (s)
+                  | _           -> printf ("Seq failed\n"); k (ar)
                   esac
          }) (s)
     }
@@ -116,7 +116,7 @@ public infixr |> after  |  (a, b) {seq (a, b)}
 public infix @ at * (a, f) {
   fun (k) {
     fun (s) {
-      a (fun (x) {k (case x of                       
+      a (fun (x) {k (case x of
                        Succ (x, s) -> Succ (f (x), s)
                      | _           -> x
                      esac)}) (s)
@@ -138,7 +138,7 @@ public fun rep0 (a) {
   empty @ lift({}) | a |> fun (x) {rep0 (a) @ fun (as) {x : as}}
 }
 
-public fun rep (a) {  
+public fun rep (a) {
   a |> (fun (x) {rep0 (a) @ fun (as) {x : as}})
 }
 
@@ -291,7 +291,7 @@ public fun expr (ops, opnd) {
 
            this
         esac
-    esac  
+    esac
   }
 
   inner (ops)
