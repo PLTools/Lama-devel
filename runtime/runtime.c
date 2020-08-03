@@ -21,12 +21,30 @@
 # define WORD_SIZE (CHAR_BIT * sizeof(int))
 
 // # define DEBUG_PRINT 1
-
+void dbg_printf(const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(stderr, fmt, args);
+    va_end(args);
+}
 #ifdef DEBUG_PRINT
+# define DEBUG_P 1
+#else
+# define DEBUG_P 0
+#endif
+# define TRACE(i,y, x) do { if (DEBUG_P) {indent+=i; y; dbg_printf x; fflush (stderr); }} while (0)
+void report_error_and_exit (const char * str) {
+  printf (str); fflush (stdout); fflush (stderr);
+  perror (str);
+  exit   (1);
+}
+
 int indent = 0;
+#ifdef DEBUG_PRINT
 void print_indent (void) {
-  for (int i = 0; i < indent; i++) printf (" ");
-  printf("| ");
+  for (int i = 0; i < indent; i++) dbg_printf (" ");
+  dbg_printf("| ");
 }
 #endif
 
@@ -144,46 +162,25 @@ void clear_extra_roots (void) {
 }
 
 void push_extra_root (void ** p) {
-#ifdef DEBUG_PRINT
-  indent++; print_indent ();
-  printf ("push_extra_root %p %p\n", p, &p); fflush (stdout);
-#endif
-  if (extra_roots.current_free >= MAX_EXTRA_ROOTS_NUMBER) {
-    perror ("ERROR: push_extra_roots: extra_roots_pool overflow");
-    exit   (1);
-  }
+  TRACE (1, (print_indent ()), ("push_extra_root %p %p\n", p, &p));
+  assert (extra_roots.current_free < MAX_EXTRA_ROOTS_NUMBER);
   extra_roots.roots[extra_roots.current_free] = p;
   extra_roots.current_free++;
-#ifdef DEBUG_PRINT
-  indent--;
-#endif
+  TRACE (-1, {}, (""));
 }
 
 void pop_extra_root (void ** p) {
-#ifdef DEBUG_PRINT
-  indent++; print_indent ();
-  printf ("pop_extra_root %p %p\n", p, &p); fflush (stdout);
-#endif
-  if (extra_roots.current_free == 0) {
-    perror ("ERROR: pop_extra_root: extra_roots are empty");
-    exit   (1);
-  }
+  TRACE (1, (print_indent ()), ("pop_extra_root %p %p\n", p, &p));
+  assert (extra_roots.current_free != 0);
   extra_roots.current_free--;
-  if (extra_roots.roots[extra_roots.current_free] != p) {
-#ifdef DEBUG_PRINT
-    print_indent ();
-    printf ("%i %p %p", extra_roots.current_free,
-	    extra_roots.roots[extra_roots.current_free], p);
-    fflush (stdout);
-#endif
-    perror ("ERROR: pop_extra_root: stack invariant violation");
-    exit   (1);
-  }
-#ifdef DEBUG_PRINT
-  indent--;
-#endif
+  assert (extra_roots.roots[extra_roots.current_free] == p);
+  TRACE (-1, {}, (""));
 }
 
+/* ignore_extra_root* : checks that **root is not stored in extra_roots.roots */
+/*     if so then set flag in ignore_extra_roots array; */
+/*     In update pointers phase foreach i: extra_roots.root[i] == 1, the root will not be updated */
+/*       since it has alredy been updated */
 int ignore_extra_roots[MAX_EXTRA_ROOTS_NUMBER];
 void ignore_extra_root (size_t ** root) {
   for (int i = 0; i < extra_roots.current_free; i++) {
@@ -364,25 +361,16 @@ char* de_hash (int n1) {
   p = &buf[5];
   size_t n = n1;
 
-#ifdef DEBUG_PRINT
-  indent++; print_indent ();
-  printf ("de_hash: tag: %d\n", n); fflush (stdout);
-#endif
-  
-  *p-- = 0;
+  TRACE (1, (print_indent ()), ("de_hash: tag: %d\n", n));
 
+  *p-- = 0;
   while (n != 0) {
-#ifdef DEBUG_PRINT
-    print_indent ();
-    printf ("char: %c %i %i\n", chars [n & 0x003F], n, n & 0x003F); fflush (stdout);
-#endif
+    TRACE (0, (print_indent ()), ("char: %c %i %i\n", chars [n & 0x003F], n, n & 0x003F));
     *p-- = chars [n & 0x003F];
     n = n >> 6;
   }
 
-#ifdef DEBUG_PRINT
-  indent--;
-#endif
+  TRACE (-1, {}, (""));
   
   return ++p;
 }
@@ -641,8 +629,7 @@ void *Lclone (void *p) {
   int n;
 #ifdef DEBUG_PRINT
   register int * ebp asm ("ebp");
-  indent++; print_indent ();
-  printf ("Lclone arg: %p %p\n", &p, p); fflush (stdout);
+  TRACE (1, (print_indent ()), ("Lclone arg: %p %p\n", &p, p));
 #endif
   __pre_gc ();
   
@@ -654,36 +641,24 @@ void *Lclone (void *p) {
     push_extra_root (&p);
     switch (t) {
     case STRING_TAG:
-#ifdef DEBUG_PRINT
-      print_indent ();
-      printf ("Lclone: string1 &p=%p p=%p\n", &p, p); fflush (stdout);
-#endif
+      TRACE (0, (print_indent ()), ("Lclone: string1 &p=%p p=%p\n", &p, p));
       res = Bstring (TO_DATA(p)->contents);
-#ifdef DEBUG_PRINT
-      print_indent ();
-      printf ("Lclone: string2 %p %p\n", &p, p); fflush (stdout);
-#endif
       break;
 
     case ARRAY_TAG:      
     case CLOSURE_TAG:
 #ifdef DEBUG_PRINT
-      print_indent ();
-      printf ("Lclone: closure or array &p=%p p=%p ebp=%p\n", &p, p, ebp); fflush (stdout);
+      TRACE (0, (print_indent ()), ("Lclone: closure or array &p=%p p=%p ebp=%p\n", &p, p, ebp));
 #endif
       obj = (data*) alloc (sizeof(int) * (l+1));
       memcpy (obj, TO_DATA(p), sizeof(int) * (l+1));
-      /* obj->tag = obj->tag | MARK_TAG; */
       res = (void*) (obj->contents);
       break;
       
     case SEXP_TAG:
-#ifdef DEBUG_PRINT
-      print_indent (); printf ("Lclone: sexp\n"); fflush (stdout);
-#endif
+      TRACE (0, (print_indent ()), ("Lclone: sexp\n"));
       sobj = (sexp*) alloc (sizeof(int) * (l+2));
       memcpy (sobj, TO_SEXP(p), sizeof(int) * (l+2));
-      /* obj->tag = obj->tag | MARK_TAG; */
       res = (void*) sobj->contents.contents;
       break;
        
@@ -692,16 +667,9 @@ void *Lclone (void *p) {
     }
     pop_extra_root (&p);
   }
-#ifdef DEBUG_PRINT
-  print_indent (); printf ("Lclone ends1\n"); fflush (stdout);
-#endif
-
   __post_gc ();
-#ifdef DEBUG_PRINT
-  print_indent ();
-  printf ("Lclone ends2\n"); fflush (stdout);
-  indent--;
-#endif
+
+  TRACE (-1, (print_indent ()), ("Lclone ends\n"));
   return res;
 }
 
@@ -806,7 +774,7 @@ extern int Lcompare (void *p, void *q) {
           break;
 
         case SEXP_TAG: {
-/* #ifndef DEBUG_PRINT */
+/* #ifndef DEBUG_PRINTRINT */
 /*           int ta = TO_SEXP(p)->tag, tb = TO_SEXP(q)->tag;       */
 /* #else */
           int ta = GET_SEXP_TAG(TO_SEXP(p)->tag), tb = GET_SEXP_TAG(TO_SEXP(q)->tag);
@@ -892,24 +860,13 @@ extern void* Bstring (void *p) {
   data *s = NULL;
   
   __pre_gc ();
-#ifdef DEBUG_PRINT
-  indent++; print_indent ();
-  printf ("Bstring: call LmakeString %s %p %p %p %i\n", p, &p, p, s, n);
-  fflush(stdout);
-#endif
+  TRACE(1, (print_indent ()), ("Bstring: call LmakeString %s %p %p %p %i\n", p, &p, p, s, n));
   push_extra_root (&p);
   s = LmakeString (BOX(n));  
   pop_extra_root(&p);
-#ifdef DEBUG_PRINT
-  print_indent ();
-  printf ("\tBstring: call strncpy: %p %p %p %i\n", &p, p, s, n); fflush(stdout);
-#endif
+  TRACE(0, (print_indent ()), ("\tBstring: call strncpy: %p %p %p %i\n", &p, p, s, n));
   strncpy ((char*)s, p, n + 1);
-#ifdef DEBUG_PRINT
-  print_indent ();
-  printf ("\tBstring: ends\n"); fflush(stdout);
-  indent--;
-#endif
+  TRACE(-1, (print_indent ()), ("\tBstring: ends\n"));
   __post_gc ();
   
   return s;
@@ -964,10 +921,7 @@ extern void* Bclosure (int bn, void *entry, ...) {
   int     n = UNBOX(bn);
   
   __pre_gc ();
-#ifdef DEBUG_PRINT
-  indent++; print_indent ();
-  printf ("Bclosure: create n = %d\n", n); fflush(stdout);
-#endif
+  TRACE (1, (print_indent ()), ("Bclosure: create n = %d\n", n));
   argss = (ebp + 12);
   for (i = 0; i<n; i++, argss++) {
     push_extra_root ((void**)argss);
@@ -995,11 +949,8 @@ extern void* Bclosure (int bn, void *entry, ...) {
     pop_extra_root ((void**)argss);
   }
 
-#ifdef DEBUG_PRINT
-  print_indent ();
-  printf ("Bclosure: ends\n", n); fflush(stdout);
-  indent--;
-#endif
+  TRACE (0, (print_indent ()), ("Bclosure: n = %i ends\n", n));
+  TRACE (-1, {}, (""));
 
   return r->contents;
 }
@@ -1011,11 +962,8 @@ extern void* Barray (int bn, ...) {
   int     n = UNBOX(bn);
     
   __pre_gc ();
-  
-#ifdef DEBUG_PRINT
-  indent++; print_indent ();
-  printf ("Barray: create n = %d\n", n); fflush(stdout);
-#endif
+
+  TRACE (1, (print_indent ()), ("Barray: create n = %d\n", n));
   r = (data*) alloc (sizeof(int) * (n+1));
 
   r->tag = ARRAY_TAG | (n << TAG_BITS) | MARK_TAG;
@@ -1030,9 +978,7 @@ extern void* Barray (int bn, ...) {
   va_end(args);
 
   __post_gc();
-#ifdef DEBUG_PRINT
-  indent--;
-#endif
+  TRACE (-1, {}, (""));
   return r->contents;
 }
 
@@ -1046,11 +992,7 @@ extern void* Bsexp (int bn, ...) {
   int n = UNBOX(bn);
 
   __pre_gc () ;
-  
-#ifdef DEBUG_PRINT
-  indent++; print_indent ();
-  printf("Bsexp: allocate %zu!\n",sizeof(int) * (n+1)); fflush (stdout);
-#endif
+  TRACE (1, (print_indent ()), ("Bsexp: allocate %zu!\n",sizeof(int) * (n+1)));
   r = (sexp*) alloc (sizeof(int) * (n+1));
   d = &(r->contents);
   r->tag = 0;
@@ -1058,25 +1000,19 @@ extern void* Bsexp (int bn, ...) {
   d->tag = SEXP_TAG | ((n-1) << TAG_BITS) | MARK_TAG;
   
   va_start(args, n);
-  
   for (i=0; i<n-1; i++) {
     ai = va_arg(args, int);
     
     p = (size_t*) ai;
     ((int*)d->contents)[i] = ai;
   }
-
   // r->tag = ((size_t)(va_arg(args, int))) << TAG_BITS;
   r->tag = (((size_t)(va_arg(args, int))) << 2) | SEXP_TAG;
 
-#ifdef DEBUG_PRINT
-  print_indent ();
-  printf("Bsexp: ends\n"); fflush (stdout);
-  indent--;
-#endif
+  TRACE (0, (print_indent ()), ("Bsexp: ends\n"));
+  TRACE (-1, {}, (""));
 
   va_end(args);
-
   __post_gc();
 
   return d->contents;
@@ -1425,27 +1361,19 @@ extern void set_args (int argc, char *argv[]) {
   
   __pre_gc ();
 
-#ifdef DEBUG_PRINT
-  indent++; print_indent ();
-  printf ("set_args: call: n=%i &p=%p p=%p: ", n, &p, p); fflush(stdout);
-  for (i = 0; i < n; i++)
-    printf("%s ", argv[i]);
-  printf("EE\n");
-#endif
+  TRACE (1, (print_indent ()), ("set_args: call: n=%i &p=%p p=%p: ", n, &p, p));
+  TRACE (0, { for (i = 0; i < n; i++)
+  	TRACE(0, (print_indent ()), ("%s ", argv[i]));
+      TRACE (0, (print_indent ()), ("EE\n"));
+    }, (""));
 
   p = LmakeArray (BOX(n));
   push_extra_root ((void**)&p);
   
   for (i=0; i<n; i++) {
-#ifdef DEBUG_PRINT
-    print_indent ();
-    printf ("set_args: iteration %i %p %p ->\n", i, &p, p); fflush(stdout);
-#endif
+    TRACE (0, (print_indent ()), ("set_args: iteration %i %p %p ->\n", i, &p, p));
     ((int*)p) [i] = (int) Bstring (argv[i]);
-#ifdef DEBUG_PRINT
-    print_indent ();
-    printf ("set_args: iteration %i <- %p %p\n", i, &p, p); fflush(stdout);
-#endif
+    TRACE (0, (print_indent ()), ("set_args: iteration %i <- %p %p\n", i, &p, p));
   }
 
   pop_extra_root ((void**)&p);
@@ -1453,11 +1381,8 @@ extern void set_args (int argc, char *argv[]) {
 
   global_sysargs = p;
   push_extra_root ((void**)&global_sysargs);
-#ifdef DEBUG_PRINT
-  print_indent ();
-  printf ("set_args: end\n", n, &p, p); fflush(stdout);
-  indent--;
-#endif
+  TRACE (0, (print_indent ()), ("set_args: end\n", n, &p, p));
+  TRACE (-1, {}, (""));
 }
 
 /* GC starts here */
@@ -1585,30 +1510,17 @@ mark_block_and_refs_begin:
 static int MARK_PHASE = 0;
 static size_t* update_pointer (size_t * p);
 extern void gc_mark_root (size_t ** root) {
-#ifdef DEBUG_PRINT
-    indent++;
-#endif
+  TRACE (1, {}, (""));
   if (IS_VALID_HEAP_POINTER(*root)) {
-#ifdef DEBUG_PRINT
-    print_indent ();
-    printf ("gc_mark_root: root %p top=%p bot=%p  *root %p \n",
-	    root, __gc_stack_top, __gc_stack_bottom, *root);
-    fflush (stdout);
-#endif
+    TRACE (0, (print_indent ()), ("gc_mark_root: root %p top=%p bot=%p  *root %p \n",
+				   root, __gc_stack_top, __gc_stack_bottom, *root));
     if (MARK_PHASE) {
       mark_block_and_refs (*root);
     } else {
       *root = update_pointer (*root);
     }
   }
-#ifdef DEBUG_PRINT
-  else {
-    print_indent ();
-    printf ("gc_mark_root: INVALID HEAP POINTER root %p  *root %p\n", root, *root);
-    fflush (stdout);
-  }
-  indent--;
-#endif
+  TRACE (-1, {}, (""));
 }
 extern inline void gc_test_and_copy_root_no_ignore (size_t ** root) {
   gc_mark_root (root);
@@ -1652,105 +1564,92 @@ extern void init_pool (void) {
   init_mark_stack ();
 }
 
-/* #ifdef DEBUG_PRINT */
+#ifdef DEBUG_PRINT
 static void printFromSpace (void) {
   size_t * cur = space.begin, *tmp = NULL;
   data   * d   = NULL;
   sexp   * s   = NULL;
   size_t   len = 0;
   size_t   elem_number = 0;
-  
-  printf ("\nHEAP SNAPSHOT\n===================\n");
-  printf ("f_begin = %p, f_cur = %p, f_end = %p, cur = %p \n",
-	  space.begin, space.current, space.end, cur);
-  while (cur < space.current) { //  && cur < current) {
-    printf ("data at %p ", cur);
+
+  TRACE (0, {}, ("\nHEAP SNAPSHOT\n===================\n"));
+  TRACE (0, {}, ("f_begin = %p, f_cur = %p, f_end = %p, cur = %p \n",
+		 space.begin, space.current, space.end, cur));
+  while (cur < space.current) {
+    TRACE (0, {}, ("data at %p ", cur));
     d  = (data *) cur;
 
     switch (TAG(d->tag)) {
     case SEXP_TAG:
       s = (sexp *) d;
       d = (data *) &(s->contents);
-      printf (", mark bit %i", d->tag & 0x4);
+      TRACE (0, {}, (", mark bit %i", d->tag & 0x4));
       char * tag = de_hash (GET_SEXP_TAG(s->tag));
-      printf ("(=>%p): SEXP\n\ttag(%s) ", s->contents.contents, tag);
+      TRACE (0, {}, ("(=>%p): SEXP\n\ttag(%s) ", s->contents.contents, tag));
       len = LEN(d->tag);
       tmp = (s->contents.contents);
       for (int i = 0; i < len; i++) {
 	int elem = ((int*)tmp)[i];
-	if (UNBOXED(elem)) printf ("%d ", UNBOX(elem));
-	else printf ("%p ", elem);
+	if (UNBOXED(elem)) TRACE (0, {}, ("%d ", UNBOX(elem)));
+	else TRACE (0, {}, ("%p ", elem));
       }
       len += 2;
-      printf ("\n");
-      fflush (stdout);
+      TRACE (0, {}, ("\n"));
       break;
 	
     case STRING_TAG:
-      printf (", mark bit %i", d->tag & 0x4);
-      printf ("(=>%p): STRING\n\t%s; len = %i %zu\n",
-	      d->contents, d->contents,
-	      LEN(d->tag), LEN(d->tag) + 1 + sizeof(int));
-      fflush (stdout);
+      TRACE (0, {}, (", mark bit %i", d->tag & 0x4));
+      TRACE (0, {}, ("(=>%p): STRING\n\t%s; len = %i %zu\n",
+		     d->contents, d->contents,
+		     LEN(d->tag), LEN(d->tag) + 1 + sizeof(int)));
       len = (LEN(d->tag) + sizeof(int)) / sizeof(size_t) + 1;
       break;
 
     case CLOSURE_TAG:
-      printf (", mark bit %i", d->tag & 0x4);
-      printf ("(=>%p): CLOSURE\n\t", d->contents);
+      TRACE (0, {}, (", mark bit %i", d->tag & 0x4));
+      TRACE (0, {}, ("(=>%p): CLOSURE\n\t", d->contents));
       len = LEN(d->tag);
       for (int i = 0; i < len; i++) {
 	int elem = ((int*)d->contents)[i];
-	if (UNBOXED(elem)) printf ("%d ", elem);
-	else printf ("%p ", elem);
+	if (UNBOXED(elem)) TRACE (0, {}, ("%d ", elem));
+	else TRACE (0, {}, ("%p ", elem));
       }
       len += 1;
-      printf ("\n");
-      fflush (stdout);
+      TRACE (0, {}, ("\n"));
       break;
 
     case ARRAY_TAG:
-      printf (", mark bit %i", d->tag & 0x4);
-      printf ("(=>%p): ARRAY\n\t", d->contents);
+      TRACE (0, {}, (", mark bit %i", d->tag & 0x4));
+      TRACE (0, {}, ("(=>%p): ARRAY\n\t", d->contents));
       len = LEN(d->tag);
       for (int i = 0; i < len; i++) {
 	int elem = ((int*)d->contents)[i];
-	if (UNBOXED(elem)) printf ("%d ", elem);
-	else printf ("%p ", elem);
+	if (UNBOXED(elem)) TRACE (0, {}, ("%d ", elem));
+	else TRACE (0, {}, ("%p ", elem));
       }
       len += 1;
-      printf ("\n");
-      fflush (stdout);
+      TRACE (0, {}, ("\n"));
       break;
 
     default:
-      printf ("\nprintFromSpace: ERROR: bad tag %d", TAG(d->tag));
-      perror ("\nprintFromSpace: ERROR: bad tag");
-      fflush (stdout);
-      exit   (1);
+      TRACE (0, {}, ("\nprintFromSpace: ERROR: bad tag %d", TAG(d->tag)));
+      report_error_and_exit ("\nprintFromSpace: ERROR: bad tag");
     }
     cur += len;
-    printf ("len = %zu, new cur = %p\n", len, cur);
+    TRACE (0, {}, ("len = %zu, new cur = %p\n", len, cur));
     elem_number++;
   }
-  printf ("\nprintFromSpace: end: the whole space is printed:\
-            %zu elements\n===================\n\n", elem_number);
-  fflush (stdout);
+  TRACE (0, {}, ("\nprintFromSpace: end: the whole space is printed:\
+            %zu elements\n===================\n\n", elem_number));
 }
-/* #endif */
+#endif
 
 static void trace_roots_and_mark_live_blocks ( void ) {
-#ifdef DEBUG_PRINT
-  printf ("trace data\n"); fflush(stdout);
-#endif
+  TRACE (0, {}, ("scan data\n"));
   gc_root_scan_data ();
-#ifdef DEBUG_PRINT
-  printf ("trace stack\n"); fflush(stdout);
-#endif
+  TRACE (0, {}, ("scan stack\n"));
   __gc_root_scan_stack ();
-#ifdef DEBUG_PRINT
-  printf ("trace extra roots\n"); fflush(stdout);
-#endif
+  TRACE (0, {}, ("scan extra roots\n"));
   if (MARK_PHASE) {
     for (int i = 0; i < extra_roots.current_free; i++) {
       gc_test_and_copy_root_no_ignore ((size_t**)extra_roots.roots[i]);
@@ -1866,10 +1765,6 @@ static size_t* update_pointer (size_t * p) {
     shift += live - dead_it;
   }
   assert (space.begin <= p - shift <= p < space.current);
-#ifdef DEBUG_PRINT
-  printf ("update_pointer: %p -> %p\n", p , p - shift);
-  fflush (stdout);
-#endif
   return p - shift;
 }
 
@@ -1935,50 +1830,28 @@ static void* gc (size_t size) {
   size_t * result = NULL;
 
   old_current = space.current;
-  
-#ifdef DEBUG_PRINT
-  printf ("gc===\n");
-  printFromSpace ();
-#endif
+
+  // TRACE(0, (print_indent()), ("gc===\n"));
   // 1. trace roots and mark blocks
   MARK_PHASE = 1;
-#ifdef DEBUG_PRINT
-  printf ("mark\n"); fflush(stdout);
-#endif
   trace_roots_and_mark_live_blocks ();
-#ifdef DEBUG_PRINT
-  printFromSpace ();
-#endif
   MARK_PHASE = 0;
-  /* printFromSpace (); */
+  TRACE(0, (printFromSpace ()), (""));
   // 2. create intervals list
-#ifdef DEBUG_PRINT
-  printf ("intervals\n"); fflush(stdout);
-#endif
   create_dead_intervals_list ();
   // TODO: 3. fix pointers _AND_ FIX ROOTS!
-#ifdef DEBUG_PRINT
-  printf ("update\n"); fflush(stdout);
-#endif
   update_heap_pointers ();
   update_stack_pointers ();
   //    It will be an extra pass through the heap since we have no free words in object headers
   // 4. compact
-#ifdef DEBUG_PRINT
-  printf ("compact: first_dead = %p\n", first_dead);
-  fflush(stdout);
-#endif
   compact ();
   // 5. reverce mark bit meaning
   reverse_mark_bit ();
-#ifdef DEBUG_PRINT
-  printFromSpace ();
-#endif
   // 6. Check that it is enough space for new object; else try to extand space
   while (space.end <= space.current + size) {
     extend_space ();
   }
-  /* printFromSpace (); */
+  TRACE(0, (printFromSpace ()), (""));
 
   for (size_t* i = space.current; i < old_current; i++) {
     *i = NULL;
@@ -1998,38 +1871,21 @@ extern void * alloc (size_t size) {
   assert (size > 0);
   
   size = (size - 1) / sizeof(size_t) + 1; /* convert bytes to words */
-#ifdef DEBUG_PRINT
-  indent++; print_indent ();
-  printf ("alloc: current: %p %zu words!", space.current, size);
-  fflush (stdout);
-#endif
+  TRACE (1, (print_indent ()), ("alloc: current: %p %zu words!\n", space.current, size));
   if (space.current + size < space.end) {
     p = (void*) space.current;
     space.current += size;
-#ifdef DEBUG_PRINT
-    print_indent ();
-    printf (";new current: %p \n", space.current); fflush (stdout);
-    indent--;
-    /* Nullify new memory */
+    TRACE (0, (print_indent ()), (";new current: %p \n", space.current));
+    TRACE (-1, {}, (""));
+#ifdef DEBUG_PRINT /* Nullify new memory */
     size_t *p1 = p;
     for (int i = 0; i < size; p1++, i++) { *p1 = 0; }
 #endif    
     return p;
   }
-  
-#ifdef DEBUG_PRINT
-/*   print_indent (); */
-/*   printf ("alloc: call gc: %zu\n", size); fflush (stdout); */
-/*   /\* current = space.current; printFromSpace(); fflush (stdout); *\/ */
-/*   p = gc (size); */
-/*   print_indent (); */
-/*   printf("alloc: gc END %p %p %p %p\n\n", space.begin, */
-/* 	 space.end, space.current, p); fflush (stdout); */
-/*   printFromSpace(); fflush (stdout); */
-  indent--;
-/*   return p; */
-/* #else */
-#endif
+
+  TRACE (0, (print_indent ()), ("alloc: call gc\n"));
+  TRACE (-1, {}, (""));
   return gc (size);
 }
 # endif
