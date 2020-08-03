@@ -29,11 +29,11 @@ void dbg_printf(const char *fmt, ...)
     va_end(args);
 }
 #ifdef DEBUG_PRINT
-# define DEBUG_P 1
+# define TRACE(i,y, x) do { indent+=i; y; dbg_printf x; fflush (stderr); } while (0)
 #else
-# define DEBUG_P 0
+# define TRACE(i,y, x)
 #endif
-# define TRACE(i,y, x) do { if (DEBUG_P) {indent+=i; y; dbg_printf x; fflush (stderr); }} while (0)
+
 void report_error_and_exit (const char * str) {
   printf (str); fflush (stdout); fflush (stderr);
   perror (str);
@@ -1801,7 +1801,6 @@ static size_t * update_object_pointers (size_t * p) {
 
 static void update_heap_pointers ( void ) {
   size_t * it = NULL;
-  //  size_t * dead = first_dead, * live = next_live (space.begin), * next_dead = NULL;
   size_t * dead = first_dead, * live = NULL, * next_dead = NULL;
 
   if (first_dead == space.begin) {
