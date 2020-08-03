@@ -1522,18 +1522,28 @@ extern void gc_mark_root (size_t ** root) {
   }
   TRACE (-1, {}, (""));
 }
-extern inline void gc_test_and_copy_root_no_ignore (size_t ** root) {
+static inline void gc_test_and_copy_root_no_ignore (size_t ** root) {
   gc_mark_root (root);
 }
 extern inline void gc_test_and_copy_root (size_t ** root) {
+  assert(!(((size_t*)&__start_custom_data < root) && (root < (size_t*)&__stop_custom_data)) );
   gc_mark_root (root);
-  ignore_extra_root (root);
+  if (MARK_PHASE) {
+    ignore_extra_root (root);
+  }
+}
+static inline void gc_test_and_copy_root_for_data_section_only (size_t ** root) {
+  gc_mark_root (root);
+  if (MARK_PHASE) {
+    ignore_extra_root (root);
+  }
 }
 
 extern void gc_root_scan_data (void) {
   size_t * p = (size_t*)&__start_custom_data;
   while (p < (size_t*)&__stop_custom_data) {
-    gc_test_and_copy_root ((size_t**)p);
+    // gc_test_and_copy_root ((size_t**)p);
+    gc_test_and_copy_root_for_data_section_only ((size_t**)p);
     p++;
   }
 }
@@ -1703,18 +1713,18 @@ static size_t* next_live (size_t * p) {
   return space.current;
 }
 
-static inline void set_interval (size_t * dead, const size_t * live, const size_t * next_dead) {
+static inline void set_interval (size_t * dead, const size_t * live, const size_t * next_d) {
   if ((unsigned)live - (unsigned)dead == 1) {
-    dead[0] = (unsigned)next_dead | 1;
+    dead[0] = (size_t)next_d | 1;
   } else {
-    dead[0] = (size_t)next_dead;
+    dead[0] = (size_t)next_d;
     dead[1] = (size_t)live;
   }
 }
-static inline void get_interval (const size_t * dead, size_t** live, size_t** next_dead){
-  *next_dead = dead[0];
-  if ((size_t)(*next_dead) & 1) {
-    *next_dead = (size_t)(*next_dead) & ~1;
+static inline void get_interval (const size_t * dead, size_t** live, size_t** next_d){
+  *next_d = dead[0];
+  if ((size_t)(*next_d) & 1) {
+    *next_d = (size_t)(*next_d) & ~1;
     *live = dead + 1;
   } else {
     *live = (size_t *)dead[1];
@@ -1733,35 +1743,71 @@ static void create_dead_intervals_list ( void ) {
   }
 }
 
+// NB: it is assumed that function is called BEFORE inverting mark bit meaning
+void create_list_of_empty_blocks_instead_of_dead_intervals ( void ) {
+  size_t * dead = first_dead, * live = NULL, * next_d = NULL;
+  for (; dead < space.current;) {
+    get_interval (dead, &live, &next_d);
+
+    // make a STRING block instead of interval and mark it as ???dead???
+    size_t string_size = (live - dead - 1) * sizeof (size_t) - 1;
+    dead[0] = STRING_TAG | (string_size << TAG_BITS) | MARK_TAG;
+    /* if (MARK_BIT == 1) { */
+    /*   dead[0] = (string_size << TAG_BITS) | STRING_TAG & (~4); */
+    /* } else { */
+    /*   dead[0] = (string_size << TAG_BITS) | STRING_TAG | 0x4; */
+    /* } */
+    // Nullify string data
+    size_t i = 0;
+    for (char * p = (char *)(dead+1); p < live; i++, p++) {
+      *p = 0;
+    }
+    assert (i == string_size + 1);
+    dead = next_d;
+  }
+  first_dead = space.current;
+}
+
+void trace_dead_intervals_list ( void ) {
+  TRACE (0, {}, ("dead intervals: [space.current = %p]\n", space.current));
+  size_t * dead = first_dead, * live = NULL, * next_d = NULL;
+  for (; dead < space.current;) {
+    get_interval (dead, &live, &next_d);
+    TRACE (0, {}, ("[dead %p (next_dead %p) -- live %p]\n", dead, next_d, live));
+    dead = next_d;
+  }
+}
+
 size_t dead_amount = 0;
 static inline void compact ( void ) {
-  size_t * dead = first_dead, * live = NULL, * next_dead = NULL, * current = dead,
+  size_t * dead = first_dead, * live = NULL, * next_d = NULL, * current = dead,
     live_interval_size = 0;
 
   dead_amount = 0;
 
   if (first_dead == space.current) return;
   do {
-    get_interval (dead, &live, &next_dead);
-    live_interval_size = next_dead - live;
+    get_interval (dead, &live, &next_d);
+    live_interval_size = next_d - live;
     memcpy (current, live, live_interval_size * sizeof (size_t));
     current += live_interval_size;
 
     dead_amount += live - dead;
 
-    dead = next_dead;
+    dead = next_d;
   } while (dead < space.current);
 
   assert (current + dead_amount == space.current);
   space.current = current;
+  first_dead = NULL;
 }
 
 static size_t* update_pointer (size_t * p) {
-  size_t * live = NULL, * dead_it = NULL, * next_dead = NULL;
+  size_t * live = NULL, * dead_it = NULL, * next_d = NULL;
   size_t shift = 0;
-  for (dead_it = first_dead; dead_it < p; dead_it = next_dead) {
+  for (dead_it = first_dead; dead_it < p; dead_it = next_d) {
     assert (dead_it < space.current);
-    get_interval (dead_it, &live, &next_dead);
+    get_interval (dead_it, &live, &next_d);
     shift += live - dead_it;
   }
   assert (space.begin <= p - shift <= p < space.current);
@@ -1801,10 +1847,10 @@ static size_t * update_object_pointers (size_t * p) {
 
 static void update_heap_pointers ( void ) {
   size_t * it = NULL;
-  size_t * dead = first_dead, * live = NULL, * next_dead = NULL;
+  size_t * dead = first_dead, * live = NULL, * next_d = NULL;
 
   if (first_dead == space.begin) {
-    get_interval (dead, &live, &next_dead);
+    get_interval (dead, &live, &next_d);
   } else {
     live = space.begin;
   }
@@ -1814,8 +1860,8 @@ update_pointers_loop:
     live = update_object_pointers (live);
   }
   if (dead < space.current) {
-    get_interval (dead, &live, &next_dead);
-    dead = next_dead;
+    get_interval (dead, &live, &next_d);
+    dead = next_d;
     goto update_pointers_loop;
   }
 }
@@ -1828,8 +1874,9 @@ size_t * old_current = NULL;
 static void* gc (size_t size) {
   size_t * result = NULL;
 
+/* #ifdef DEBUG_PRINT */
   old_current = space.current;
-
+/* #endif */
   // TRACE(0, (print_indent()), ("gc===\n"));
   // 1. trace roots and mark blocks
   MARK_PHASE = 1;
@@ -1838,6 +1885,11 @@ static void* gc (size_t size) {
   TRACE(0, (printFromSpace ()), (""));
   // 2. create intervals list
   create_dead_intervals_list ();
+  TRACE (0, (trace_dead_intervals_list ()), (""));
+
+  // TODO: DEBUG ONLY
+  //create_list_of_empty_blocks_instead_of_dead_intervals ();
+
   // TODO: 3. fix pointers _AND_ FIX ROOTS!
   update_heap_pointers ();
   update_stack_pointers ();
@@ -1852,12 +1904,18 @@ static void* gc (size_t size) {
   }
   TRACE(0, (printFromSpace ()), (""));
 
+/* #ifdef DEBUG_PRINT // Nullify freed memory */
   for (size_t* i = space.current; i < old_current; i++) {
     *i = NULL;
   }
-
+/* #endif */
   result = space.current;
   space.current += size;
+/* #ifdef DEBUG_PRINT // Nullify allocated memory */
+  for (size_t* i = result; i < space.current; i++) {
+    *i = NULL;
+  }
+/* #endif */
 
   return result;
 }
@@ -1876,10 +1934,10 @@ extern void * alloc (size_t size) {
     space.current += size;
     TRACE (0, (print_indent ()), (";new current: %p \n", space.current));
     TRACE (-1, {}, (""));
-#ifdef DEBUG_PRINT /* Nullify new memory */
+/* #ifdef DEBUG_PRINT /\* Nullify new memory *\/ */
     size_t *p1 = p;
     for (int i = 0; i < size; p1++, i++) { *p1 = 0; }
-#endif    
+/* #endif     */
     return p;
   }
 
