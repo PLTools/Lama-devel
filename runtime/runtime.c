@@ -1886,20 +1886,26 @@ static void create_dead_intervals_list ( void ) {
   }
 }
 
+size_t dead_amount = 0;
 static inline void compact ( void ) {
   size_t * dead = first_dead, * live = NULL, * next_dead = NULL, * current = dead,
-    dead_interval_size = 0;
+    live_interval_size = 0;
+
+  dead_amount = 0;
+
   if (first_dead == space.current) return;
   do {
     get_interval (dead, &live, &next_dead);
-    // dead_interval_size = live - dead;
-    // memcpy (current, live, dead_interval_size * sizeof (size_t));
-    // current += dead_interval_size;
-    dead_interval_size = next_dead - live;
-    memcpy (current, live, dead_interval_size * sizeof (size_t));
-    current += dead_interval_size;
+    live_interval_size = next_dead - live;
+    memcpy (current, live, live_interval_size * sizeof (size_t));
+    current += live_interval_size;
+
+    dead_amount += live - dead;
+
     dead = next_dead;
   } while (dead < space.current);
+
+  assert (current + dead_amount == space.current);
   space.current = current;
 }
 
@@ -1911,6 +1917,7 @@ static size_t* update_pointer (size_t * p) {
     get_interval (dead_it, &live, &next_dead);
     shift += live - dead_it;
   }
+  assert (space.begin <= p - shift <= p < space.current);
 #ifdef DEBUG_PRINT
   printf ("update_pointer: %p -> %p\n", p , p - shift);
   fflush (stdout);
