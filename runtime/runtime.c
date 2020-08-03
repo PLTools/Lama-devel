@@ -41,7 +41,6 @@ typedef struct {
 } pool;
 
 static pool space;
-// size_t      *current;
 /* end */
 
 # ifdef __ENABLE_GC__
@@ -93,7 +92,6 @@ typedef struct {
 // # define MARK_BIT_SHIFT 2
 size_t MARK_BIT = 1; // 0 or 1; meaning of being marked
 size_t MARK_TAG = 0; // 4 or 0; for allocation only
-// size_t BLOCK_MARKED_MASK = 4; // 0 or 0xFFFFFFFB; -||-
 // x is a pointer to the DATA!!
 void MARK_BLOCK (size_t* x) {
   data* t = TO_DATA(x);
@@ -184,6 +182,20 @@ void pop_extra_root (void ** p) {
 #ifdef DEBUG_PRINT
   indent--;
 #endif
+}
+
+int ignore_extra_roots[MAX_EXTRA_ROOTS_NUMBER];
+void ignore_extra_root (size_t ** root) {
+  for (int i = 0; i < extra_roots.current_free; i++) {
+    if (extra_roots.roots[i] == root) {
+      ignore_extra_roots[i] = 1;
+    }
+  }
+}
+void clear_ignore_extra_roots ( void ) {
+  for (int i = 0; i < MAX_EXTRA_ROOTS_NUMBER; i++) {
+    ignore_extra_roots[i] = 0;
+  }
 }
 
 /* end */
@@ -957,10 +969,11 @@ extern void* Bclosure (int bn, void *entry, ...) {
   printf ("Bclosure: create n = %d\n", n); fflush(stdout);
 #endif
   argss = (ebp + 12);
-  /* for (i = 0; i<n; i++, argss++) { */
-  /*   push_extra_root ((void**)argss); */
-  /* } */
+  for (i = 0; i<n; i++, argss++) {
+    push_extra_root ((void**)argss);
+  }
 
+  assert (n >= 0);
   r = (data*) alloc (sizeof(int) * (n+2));
   
   r->tag = CLOSURE_TAG | ((n + 1) << TAG_BITS) | MARK_TAG;
@@ -978,9 +991,9 @@ extern void* Bclosure (int bn, void *entry, ...) {
   __post_gc();
 
   argss--;
-  /* for (i = 0; i<n; i++, argss--) { */
-  /*   pop_extra_root ((void**)argss); */
-  /* } */
+  for (i = 0; i<n; i++, argss--) {
+    pop_extra_root ((void**)argss);
+  }
 
 #ifdef DEBUG_PRINT
   print_indent ();
@@ -1507,80 +1520,6 @@ static int extend_space (void) {
   return 0;
 }
 
-/* extern size_t * gc_copy_element (size_t *obj) { */
-/*   data   *d    = TO_DATA(obj); */
-/*   sexp   *s    = NULL; */
-/*   size_t *copy = NULL; */
-/*   int i = 0, j=0; */
-/*   copy = current; */
-
-/*   if (IS_FORWARD_PTR(d->tag)) { */
-/*     return (size_t *) d->tag; */
-/*   } */
-  
-/*   switch (TAG(d->tag)) { */
-/*   case STRING_TAG: */
-/* #ifdef DEBUG_PRINT */
-/*     indent++; */
-/*     print_indent (); */
-/*     printf ("gc_copy:string_tag; len = %d\n", LEN(d->tag) + 1); fflush (stdout); */
-/* #endif */
-/*     j = LEN(d->tag) + 1; */
-/*     current += (LEN(d->tag) + sizeof(int)) / sizeof(size_t) + 1; */
-/*     *copy = d->tag; */
-/*     copy++; */
-/*     d->tag = (int) copy; */
-/*     strcpy ((char*)&copy[0], (char*) obj); */
-/*     break; */
-/*   case CLOSURE_TAG: */
-/*   case ARRAY_TAG: */
-/* #ifdef DEBUG_PRINT */
-/*       print_indent (); */
-/*       printf ("gc_copy:closure or array; len =  %zu\n", LEN(d->tag)); fflush (stdout); */
-/* #endif */
-/*       i = LEN(d->tag); */
-/*       current += i+1; */
-/*       *copy = d->tag; */
-/*       copy++; */
-/*       d->tag = (int) copy; */
-/*       memcpy (copy, obj,  sizeof(int) * i); */
-/*       break; */
-/*   case SEXP_TAG: */
-/*     s = TO_SEXP(obj); */
-/*     i = LEN(s->contents.tag); */
-/*     current += i + 2; */
-/*     *copy = s->tag; */
-/*     copy++; */
-/*     *copy = d->tag; */
-/*     copy++; */
-/*     d->tag = (int) copy; */
-/*     memcpy (copy, obj,  sizeof(int) * i); */
-/* #ifdef DEBUG_PRINT */
-/*     indent++; */
-/*     print_indent (); */
-/*     printf ("gc_copy:sexp_tag; len = %d\n", i); fflush (stdout); */
-/* #endif */
-/*     break; */
-/*   default: */
-/* #ifdef DEBUG_PRINT */
-/*     print_indent (); */
-/*     printf ("ERROR: gc_copy: weird tag: %p", TAG(d->tag)); fflush (stdout); */
-/*     indent--; */
-/* #endif */
-/*     perror ("ERROR: gc_copy: weird tag"); */
-/*     exit (1); */
-/*   } */
-/* #ifdef DEBUG_PRINT */
-/*   print_indent (); */
-/*   printf ("gc_copy: %p -> %p; new-current = %p\n", */
-/* 	  obj, copy, current); */
-/*   fflush (stdout); */
-/*   indent--; */
-/* #endif */
-/*   to_space.current = current; */
-/*   return copy; */
-/* } */
-
 typedef struct {
   size_t size;
   size_t top;
@@ -1671,8 +1610,12 @@ extern void gc_mark_root (size_t ** root) {
   indent--;
 #endif
 }
+extern inline void gc_test_and_copy_root_no_ignore (size_t ** root) {
+  gc_mark_root (root);
+}
 extern inline void gc_test_and_copy_root (size_t ** root) {
   gc_mark_root (root);
+  ignore_extra_root (root);
 }
 
 extern void gc_root_scan_data (void) {
@@ -1808,15 +1751,20 @@ static void trace_roots_and_mark_live_blocks ( void ) {
 #ifdef DEBUG_PRINT
   printf ("trace extra roots\n"); fflush(stdout);
 #endif
-  for (int i = 0; i < extra_roots.current_free; i++) {
-    gc_test_and_copy_root ((size_t**)extra_roots.roots[i]);
+  if (MARK_PHASE) {
+    for (int i = 0; i < extra_roots.current_free; i++) {
+      gc_test_and_copy_root_no_ignore ((size_t**)extra_roots.roots[i]);
+    }
+  } else {
+    for (int i = 0; i < extra_roots.current_free; i++) {
+      if (ignore_extra_roots[i] == 0) {
+	gc_test_and_copy_root_no_ignore ((size_t**)extra_roots.roots[i]);
+      }
+    }  
+    clear_ignore_extra_roots ();
   }
 }
 
-/* typedef struct { */
-/*   size_t * next; */
-/*   size_t   size[0]; */
-/* } intervals_list; */
 static inline size_t* skip_block (size_t * p) {
   data * d   = NULL;
   if (IS_SEXP(*p)) {
@@ -2046,6 +1994,9 @@ static void* gc (size_t size) {
 /* alloc: allocates `size` bytes in heap */
 extern void * alloc (size_t size) {
   void * p = (void*)BOX(NULL);
+
+  assert (size > 0);
+  
   size = (size - 1) / sizeof(size_t) + 1; /* convert bytes to words */
 #ifdef DEBUG_PRINT
   indent++; print_indent ();
