@@ -1450,7 +1450,8 @@ typedef struct {
   size_t top;
   size_t stack[0];
 } ptr_stack;
-# define MARK_STACK_SIZE 1024
+// # define MARK_STACK_SIZE 1024
+# define MARK_STACK_SIZE 2048
 ptr_stack * mark_stack;
 static void init_mark_stack ( void ) {
   mark_stack = mmap (NULL, MARK_STACK_SIZE * sizeof(size_t), PROT_READ | PROT_WRITE,
@@ -1459,7 +1460,7 @@ static void init_mark_stack ( void ) {
     perror ("EROOR: init_mark_stack: mmap failed\n");
     exit   (1);
   }
-  mark_stack->size = MARK_STACK_SIZE;
+  mark_stack->size = MARK_STACK_SIZE - 2;
   mark_stack->top  = 0;
 }
 static void mark_stack_overflow_recovery ( void ) {
@@ -1470,7 +1471,9 @@ static void mark_stack_push (size_t* p) {
   if (mark_stack->top == mark_stack->size) {
     mark_stack_overflow_recovery ();
   }
-  mark_stack->stack[mark_stack->top++] = (size_t)p;
+  /* mark_stack->stack[mark_stack->top++] = (size_t)p; */
+  mark_stack->stack[mark_stack->top] = (size_t)p;
+  mark_stack->top++;
 }
 static size_t* mark_stack_pop ( void ) {
   if (mark_stack->top == 0) {
