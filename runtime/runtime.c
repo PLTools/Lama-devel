@@ -1574,7 +1574,7 @@ extern void init_pool (void) {
   init_mark_stack ();
 }
 
-#ifdef DEBUG_PRINT
+//#ifdef DEBUG_PRINT
 static void printFromSpace (void) {
   size_t * cur = space.begin, *tmp = NULL;
   data   * d   = NULL;
@@ -1582,63 +1582,95 @@ static void printFromSpace (void) {
   size_t   len = 0;
   size_t   elem_number = 0;
 
-  TRACE (0, {}, ("\nHEAP SNAPSHOT\n===================\n"));
-  TRACE (0, {}, ("f_begin = %p, f_cur = %p, f_end = %p, cur = %p \n",
-		 space.begin, space.current, space.end, cur));
+  printf ("\nHEAP SNAPSHOT\n===================\n");
+  /* TRACE (0, {}, ("\nHEAP SNAPSHOT\n===================\n")); */
+  printf (("f_begin = %p, f_cur = %p, f_end = %p, cur = %p \n",
+	   space.begin, space.current, space.end, cur));
+  /* TRACE (0, {}, ("f_begin = %p, f_cur = %p, f_end = %p, cur = %p \n", */
+  /* 		 space.begin, space.current, space.end, cur)); */
   while (cur < space.current) {
-    TRACE (0, {}, ("data at %p ", cur));
+    printf ("data at %p ", cur);
+    /* TRACE (0, {}, ("data at %p ", cur)); */
     d  = (data *) cur;
 
     switch (TAG(d->tag)) {
     case SEXP_TAG:
       s = (sexp *) d;
       d = (data *) &(s->contents);
-      TRACE (0, {}, (", mark bit %i", d->tag & 0x4));
+      printf (", mark bit %i", d->tag & 0x4);
+      /* TRACE (0, {}, (", mark bit %i", d->tag & 0x4)); */
       char * tag = de_hash (GET_SEXP_TAG(s->tag));
-      TRACE (0, {}, ("(=>%p): SEXP\n\ttag(%s) ", s->contents.contents, tag));
+      printf ("(=>%p): SEXP\n\ttag(%s) ", s->contents.contents, tag);
+      /* TRACE (0, {}, ("(=>%p): SEXP\n\ttag(%s) ", s->contents.contents, tag)); */
       len = LEN(d->tag);
       tmp = (s->contents.contents);
       for (int i = 0; i < len; i++) {
 	int elem = ((int*)tmp)[i];
-	if (UNBOXED(elem)) TRACE (0, {}, ("%d ", UNBOX(elem)));
-	else TRACE (0, {}, ("%p ", elem));
+	if (UNBOXED(elem)) {
+	  printf ("%d ", UNBOX(elem));
+	  /* TRACE (0, {}, ("%d ", UNBOX(elem))); */
+	} else {
+	  printf ("%p ", elem);
+	  /* TRACE (0, {}, ("%p ", elem)); */
+	}
       }
       len += 2;
-      TRACE (0, {}, ("\n"));
+      printf ("\n");
+      /* TRACE (0, {}, ("\n")); */
       break;
 	
     case STRING_TAG:
-      TRACE (0, {}, (", mark bit %i", d->tag & 0x4));
-      TRACE (0, {}, ("(=>%p): STRING\n\t%s; len = %i %zu\n",
-		     d->contents, d->contents,
-		     LEN(d->tag), LEN(d->tag) + 1 + sizeof(int)));
+      printf (", mark bit %i", d->tag & 0x4);
+      printf ("(=>%p): STRING\n\t%s; len = %i %zu\n",
+	      d->contents, d->contents,
+	      LEN(d->tag), LEN(d->tag) + 1 + sizeof(int));
+      /* TRACE (0, {}, (", mark bit %i", d->tag & 0x4)); */
+      /* TRACE (0, {}, ("(=>%p): STRING\n\t%s; len = %i %zu\n", */
+      /* 		     d->contents, d->contents, */
+      /* 		     LEN(d->tag), LEN(d->tag) + 1 + sizeof(int))); */
       len = (LEN(d->tag) + sizeof(int)) / sizeof(size_t) + 1;
       break;
 
     case CLOSURE_TAG:
-      TRACE (0, {}, (", mark bit %i", d->tag & 0x4));
-      TRACE (0, {}, ("(=>%p): CLOSURE\n\t", d->contents));
+      printf (", mark bit %i", d->tag & 0x4);
+      printf ("(=>%p): CLOSURE\n\t", d->contents);
+      /* TRACE (0, {}, (", mark bit %i", d->tag & 0x4)); */
+      /* TRACE (0, {}, ("(=>%p): CLOSURE\n\t", d->contents)); */
       len = LEN(d->tag);
       for (int i = 0; i < len; i++) {
 	int elem = ((int*)d->contents)[i];
-	if (UNBOXED(elem)) TRACE (0, {}, ("%d ", elem));
-	else TRACE (0, {}, ("%p ", elem));
+	if (UNBOXED(elem)) {
+	  printf ("%d ", elem);
+	  /* TRACE (0, {}, ("%d ", elem)); */
+	} else {
+	  printf ("%p ", elem);
+	  /* TRACE (0, {}, ("%p ", elem)); */
+	}
       }
       len += 1;
-      TRACE (0, {}, ("\n"));
+      printf ("\n");
+      /* TRACE (0, {}, ("\n")); */
       break;
 
     case ARRAY_TAG:
-      TRACE (0, {}, (", mark bit %i", d->tag & 0x4));
-      TRACE (0, {}, ("(=>%p): ARRAY\n\t", d->contents));
+      printf (", mark bit %i", d->tag & 0x4);
+      printf ("(=>%p): ARRAY\n\t", d->contents);
+      /* TRACE (0, {}, (", mark bit %i", d->tag & 0x4)); */
+      /* TRACE (0, {}, ("(=>%p): ARRAY\n\t", d->contents)); */
       len = LEN(d->tag);
       for (int i = 0; i < len; i++) {
 	int elem = ((int*)d->contents)[i];
-	if (UNBOXED(elem)) TRACE (0, {}, ("%d ", elem));
-	else TRACE (0, {}, ("%p ", elem));
+	if (UNBOXED(elem)) {
+	  printf ("%d ", elem);
+	  /* TRACE (0, {}, ("%d ", elem)); */
+	} else {
+	  printf ("%p ", elem);
+	  /* TRACE (0, {}, ("%p ", elem)); */
+	}
       }
       len += 1;
-      TRACE (0, {}, ("\n"));
+      printf ("\n");
+      /* TRACE (0, {}, ("\n")); */
       break;
 
     default:
@@ -1646,13 +1678,16 @@ static void printFromSpace (void) {
       report_error_and_exit ("\nprintFromSpace: ERROR: bad tag");
     }
     cur += len;
-    TRACE (0, {}, ("len = %zu, new cur = %p\n", len, cur));
+    printf ("len = %zu, new cur = %p\n", len, cur);
+    /* TRACE (0, {}, ("len = %zu, new cur = %p\n", len, cur)); */
     elem_number++;
   }
-  TRACE (0, {}, ("\nprintFromSpace: end: the whole space is printed:\
-            %zu elements\n===================\n\n", elem_number));
+  printf ("\nprintFromSpace: end: the whole space is printed:\
+            %zu elements\n===================\n\n", elem_number);
+  /* TRACE (0, {}, ("\nprintFromSpace: end: the whole space is printed:\ */
+  /*           %zu elements\n===================\n\n", elem_number)); */
 }
-#endif
+//#endif
 
 static void trace_roots_and_mark_live_blocks ( void ) {
   TRACE (0, {}, ("scan data\n"));
@@ -1769,10 +1804,12 @@ void create_list_of_empty_blocks_instead_of_dead_intervals ( void ) {
 }
 
 void trace_dead_intervals_list ( void ) {
-  TRACE (0, {}, ("dead intervals: [space.current = %p]\n", space.current));
+  /* TRACE (0, {}, ("dead intervals: [space.current = %p]\n", space.current)); */
+  /* printf ("dead intervals: [space.current = %p]\n", space.current); */
   size_t * dead = first_dead, * live = NULL, * next_d = NULL;
   for (; dead < space.current;) {
     get_interval (dead, &live, &next_d);
+    /* printf ("[dead %p (next_dead %p) -- live %p]\n", dead, next_d, live);     */
     TRACE (0, {}, ("[dead %p (next_dead %p) -- live %p]\n", dead, next_d, live));
     dead = next_d;
   }
@@ -1789,8 +1826,15 @@ static inline void compact ( void ) {
   do {
     get_interval (dead, &live, &next_d);
     live_interval_size = next_d - live;
-    memcpy (current, live, live_interval_size * sizeof (size_t));
-    current += live_interval_size;
+    // memcpy (current, live, live_interval_size * sizeof (size_t));
+    for (size_t * it = live; it < next_d; it++, current++) {
+      *current = *it;
+    }
+      
+    /* printf ("compact: %p -> %p; size = %zu; live_interval_size; dead_size = %zu\n", */
+    /* 	    live, current, live_interval_size, live - dead); */
+    assert (live + live_interval_size == next_d);
+    // current += live_interval_size;
 
     dead_amount += live - dead;
 
@@ -1874,6 +1918,9 @@ size_t * old_current = NULL;
 static void* gc (size_t size) {
   size_t * result = NULL;
 
+  /* printf ("gc\n"); */
+  /* printFromSpace(); */
+
 /* #ifdef DEBUG_PRINT */
   old_current = space.current;
 /* #endif */
@@ -1882,9 +1929,12 @@ static void* gc (size_t size) {
   MARK_PHASE = 1;
   trace_roots_and_mark_live_blocks ();
   MARK_PHASE = 0;
+  /* printf ("after mark\n"); */
+  /* printFromSpace(); */
   TRACE(0, (printFromSpace ()), (""));
   // 2. create intervals list
   create_dead_intervals_list ();
+  trace_dead_intervals_list ();
   TRACE (0, (trace_dead_intervals_list ()), (""));
 
   // TODO: DEBUG ONLY
@@ -1909,6 +1959,9 @@ static void* gc (size_t size) {
     *i = NULL;
   }
 /* #endif */
+  
+  /* printFromSpace (); */
+  
   result = space.current;
   space.current += size;
 /* #ifdef DEBUG_PRINT // Nullify allocated memory */
