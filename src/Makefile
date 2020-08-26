@@ -3,9 +3,9 @@ OCAMLC = ocamlfind c
 OCAMLOPT = ocamlfind opt
 OCAMLDEP = ocamlfind dep
 SOURCES = version.ml stdpath.ml Language.ml SM.ml X86.ml Driver.ml
-CAMLP5 = -syntax camlp5o -package ostap.syntax,GT.syntax.all
+CAMLP5 = -syntax camlp5o -package ostap.syntax,GT-p5,GT.syntax.all
 PXFLAGS = $(CAMLP5)
-BFLAGS = -rectypes -g
+BFLAGS = -rectypes -g -package GT,ostap 
 OFLAGS = $(BFLAGS)
 LIBS = unix.cma
 
