@@ -1,22 +1,4 @@
-open Ostap
 
-let parse infile =
-  let s = Util.read infile in
-  Util.parse
-    (object
-       inherit Matcher.t s
-       inherit Util.Lexers.decimal s
-       inherit Util.Lexers.string s
-       inherit Util.Lexers.char   s
-       inherit Util.Lexers.ident ["skip"; "if"; "then"; "else"; "elif"; "fi"; "while"; "do"; "od"; "repeat"; "until"; "for"; "fun"; "local"; "return"; "length"] s
-       inherit Util.Lexers.skip [
-	 Matcher.Skip.whitespaces " \t\n";
-	 Matcher.Skip.lineComment "--";
-	 Matcher.Skip.nestedComment "(*" "*)"
-       ] s
-     end
-    )
-    (ostap (!(Language.parse) -EOF))
 
 module ArgInfo = struct
   type t =
@@ -43,27 +25,12 @@ module ArgInfo = struct
   let is_interpret { interpret } = interpret
   let dparsetree { dparsetree } = dparsetree
 
-  let print_position outx lexbuf =
-    let open Lexing in
-    let pos = lexbuf.lex_curr_p in
-    Format.fprintf outx "%s:%d:%d" pos.pos_fname
-      pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
-
-
   let parse { menhir; file } =
+    print_endline file;
+    let s = Ostap.Util.read file in
     if not menhir
-    then parse file
-    else
-      let lexbuf = Lexing.from_string (Util.read file) in
-      let () = lexbuf.Lexing.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = file } in
-      try `Ok (LamaMenhir.toplevel LamaLexer.read lexbuf)
-    with
-      | LamaLexer.SyntaxError msg ->
-        `Fail (Format.asprintf "%a: %s\n" print_position lexbuf msg)
-      | LamaMenhir.Error ->
-        `Fail (Format.asprintf "%a: syntax error\n" print_position lexbuf)
-
-
+    then Language.run_parser s
+    else RunMenhir.run_parser ~filename:file s
 
 end
 

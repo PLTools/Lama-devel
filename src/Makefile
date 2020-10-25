@@ -1,33 +1,36 @@
 .PHONY: celan
 
 TOPFILE = rc
+BENCH_FILE = bench.exe
 OCAMLC = ocamlfind c
 OCAMLOPT = ocamlfind opt
 OCAMLDEP = ocamlfind dep
 SOURCES_HEAD = Language.ml
 SOURCES_GENERATED =  LamaMenhir.ml LamaLexer.ml
-SOURCES_TAIL = SM.ml X86.ml Driver.ml
+SOURCES_TAIL = RunMenhir.ml SM.ml X86.ml
 SOURCES = $(SOURCES_HEAD) $(SOURCES_GENERATED) $(SOURCES_TAIL)
 COMPILE_OBJS_CMO := $(SOURCES_HEAD:.ml=.cmo) LamaMenhir.cmo LamaLexer.cmo $(SOURCES_TAIL:.ml=.cmo)
 COMPILE_OBJS_CMX := $(SOURCES:.ml=.cmx)  LamaMenhir.cmx LamaLexer.cmx $(SOURCES_TAIL:.ml=.cmx)
-#COMPILE_OBJS_CMO := $(COMPILE_OBJS_CMO:.mli=.cmi)
-#COMPILE_OBJS_CMX := $(COMPILE_OBJS_CMX:.mli=.cmi)
 LIBS =
-CAMLP5 = -syntax camlp5o -package GT.syntax.all,ostap.syntax
+OCAMLFIND_PACKAGES=-package GT.syntax.all,ostap.syntax
+CAMLP5 = -syntax camlp5o $(OCAMLFIND_PACKAGES)
 PXFLAGS = $(CAMLP5)
-BFLAGS = -rectypes -package GT,re,ostap -linkpkg -w -13
+BFLAGS = -rectypes -package GT,re,ostap,benchmark -linkpkg -w -13
 OFLAGS = $(BFLAGS)
+MENHIR_FLAGS = --external-tokens Language.Json --explain
+#MENHIR_FLAGS += --trace
 
-all: LamaMenhir.ml LamaLexer.ml depend $(TOPFILE).opt
+all: LamaMenhir.ml LamaLexer.ml depend $(TOPFILE).opt $(BENCH_FILE)
 
 depend: $(SOURCES)
 	$(OCAMLDEP) $(PXFLAGS) *.ml *.mli > .depend
 
-$(TOPFILE).opt: $(COMPILE_OBJS_CMX)
-	$(OCAMLOPT) -o $(TOPFILE).opt $(OFLAGS) $(LIBS:.cma=.cmxa) $(SOURCES:.ml=.cmx)
+$(TOPFILE).opt: $(COMPILE_OBJS_CMX) Driver.cmx
+	$(OCAMLOPT) -o $@ $(OFLAGS) $(LIBS:.cma=.cmxa) $(SOURCES:.ml=.cmx) Driver.cmx
 
-$(TOPFILE).byte: $(COMPILE_OBJS_CMO)
-	$(OCAMLC) -o $(TOPFILE).byte $(BFLAGS) $(LIBS) $(SOURCES:.ml=.cmo)
+$(BENCH_FILE): $(COMPILE_OBJS_CMX) bench.cmx
+	$(OCAMLOPT) -o $@ $(BFLAGS) $(OCAMLFIND_PACKAGES) -package str $(OFLAGS) $^
+
 
 celan: clean
 clean:
@@ -40,10 +43,12 @@ clean:
 
 LamaMenhir.cmo: LamaMenhir.ml LamaMenhir.cmi Language.cmi Language.cmo
 LamaMenhir.cmx: LamaMenhir.ml LamaMenhir.cmi Language.cmi Language.cmx
+RunMenhir.cmx LamaLexer.cmx: LamaMenhir.cmx
 Driver.cmx: LamaMenhir.cmx LamaLexer.cmx
 
-LamaMenhir.ml: LamaMenhir.mly #LamaMenhir.cmi
-	menhir --external-tokens Language.Json --explain  $<
+LamaMenhir.ml: LamaMenhir.mly
+	menhir $(MENHIR_FLAGS) $<
+	$(RM) LamaMenhir.mli
 
 # generic rules
 

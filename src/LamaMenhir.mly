@@ -30,19 +30,25 @@
   | MINUS { "-" }
   | PERCENT { "%" }
   ;
-%inline op_log:
+%inline op_pred:
   | GT  { ">" }
   | GE  { ">=" }
   | LT  { "<" }
   | LE  { "<=" }
   | NEQ { "!=" }
   | EQEQ { "==" }
+  ;
+%inline op_log:
   | LAND { "&&" }
   | LOR  { "!!" }
   ;
 
 expr_log:
-  | l = expr_log; op = op_log; r = expr_add { Language.Expr.Binop (op,l,r) }
+  | l = expr_log; op = op_log; r = expr_pred { Language.Expr.Binop (op,l,r) }
+  | e = expr_pred { e }
+  ;
+expr_pred:
+  | l = expr_pred; op = op_pred; r = expr_add { Language.Expr.Binop (op,l,r) }
   | e = expr_add { e }
   ;
 expr_add:
@@ -68,7 +74,7 @@ expr_base:
   | s = STRING   { Language.Expr.String s }
   | c = CHAR     { Language.Expr.Const (Char.code c) }
   | LPAREN; e = expr_log; RPAREN { e }
-  | MINUS; e = expr_base { e }
+  | MINUS; e = expr_base { e (* BUG?*) }
   | f = IDENT; LPAREN; args = separated_list(COMMA, expr); RPAREN { Language.Expr.Call (f, args) }
   | f = IDENT         { Language.Expr.Var f }
   // | f = IDENT; args = plist(expr) {

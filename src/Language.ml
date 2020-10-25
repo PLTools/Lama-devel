@@ -214,7 +214,8 @@ module Expr =
             {List.fold_left (fun b -> function `Elem i -> Elem (b, i) | `Len -> Length b) b is  };
       base:
         n:DECIMAL                                         {Const n}
-      | s:STRING                                          {String (String.sub s 1 (String.length s - 2))}
+      (* | s:STRING                                          {String (String.sub s 1 (String.length s - 2))} *)
+      | s:STRING                                          {String s }
       | c:CHAR                                            {Const  (Char.code c)}
       | "[" es:!(Util.list0)[parse] "]"                   {Array es}
       | "`" t:IDENT args:(-"(" !(Util.list)[parse] -")")? {Sexp (t, match args with None -> [] | Some args -> args)}
@@ -369,9 +370,6 @@ let parse = ostap (!(Definition.parse)* !(Stmt.parse))
 
 module Json = struct
   type token =
-  (* | NULL
-  | TRUE
-  | FALSE *)
   | STRING of string
   | IDENT of string
   | DECIMAL of int
@@ -410,3 +408,22 @@ module Json = struct
     | `String of string
   ]
 end
+
+
+open Ostap
+
+let run_parser s =
+  Util.parse
+    (object
+      inherit Matcher.t s
+      inherit Util.Lexers.decimal s
+      inherit Util.Lexers.string s
+      inherit Util.Lexers.char   s
+      inherit Util.Lexers.ident ["skip"; "if"; "then"; "else"; "elif"; "fi"; "while"; "do"; "od"; "repeat"; "until"; "for"; "fun"; "local"; "return"; "length"] s
+       inherit Util.Lexers.skip [
+          Matcher.Skip.whitespaces " \t\n";
+          Matcher.Skip.lineComment "--";
+          Matcher.Skip.nestedComment "(*" "*)"
+      ] s
+    end)
+    (ostap (!(parse) -EOF))

@@ -13,7 +13,7 @@ let next_line lexbuf =
     }
 }
 
-let int = '-'? ['0'-'9'] ['0'-'9']*
+let int = ['0'-'9'] ['0'-'9']*
 let digit = ['0'-'9']
 let frac = '.' digit*
 let exp = ['e' 'E'] ['-' '+']? digit+
@@ -30,6 +30,7 @@ rule read =
   | int      { DECIMAL (int_of_string (Lexing.lexeme lexbuf) : int ) }
   (* | float     { FLOAT (float_of_string (Lexing.lexeme lexbuf)) } *)
   | "skip"   { SKIP }
+  | "return" { RETURN }
   | "if"     { IF }
   | "then"   { THEN }
   | "else"   { ELSE }
