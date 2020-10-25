@@ -1,0 +1,6 @@
+.merlin
+/LamaLexer.ml
+/LamaMenhir.ml
+/LamaMenhir.mli
+/LamaMenhir.conflicts
+/rc.opt
