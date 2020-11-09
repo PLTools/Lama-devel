@@ -31,13 +31,13 @@ let bench_file file =
     match parse contents with
       | `Ok  r -> snd r
       | `Fail s ->
-          Printf.eprintf "Error: %s\n" s;
+          Printf.eprintf "Error: %s\n%s\n\n" s (Printexc.get_backtrace ());
           exit 1
   in
 
   let () =
-    let ast1 = wrap Language.run_parser in
     let ast2 = wrap (RunMenhir.run_parser ~filename:file) in
+    let ast1 = wrap Language.run_parser in
 
     if ast1<>ast2
     then

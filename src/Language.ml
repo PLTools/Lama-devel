@@ -214,8 +214,7 @@ module Expr =
             {List.fold_left (fun b -> function `Elem i -> Elem (b, i) | `Len -> Length b) b is  };
       base:
         n:DECIMAL                                         {Const n}
-      (* | s:STRING                                          {String (String.sub s 1 (String.length s - 2))} *)
-      | s:STRING                                          {String s }
+      | s:STRING                                          {String (String.sub s 1 (String.length s - 2))}
       | c:CHAR                                            {Const  (Char.code c)}
       | "[" es:!(Util.list0)[parse] "]"                   {Array es}
       | "`" t:IDENT args:(-"(" !(Util.list)[parse] -")")? {Sexp (t, match args with None -> [] | Some args -> args)}
@@ -367,48 +366,6 @@ let eval (defs, body) i =
 
 (* Top-level parser *)
 let parse = ostap (!(Definition.parse)* !(Stmt.parse))
-
-module Json = struct
-  type token =
-  | STRING of string
-  | IDENT of string
-  | DECIMAL of int
-  | CHAR of char
-  | INT of int
-  | FLOAT of float
-  | ID of string
-  | LBRACK
-  | RBRACK
-  | LEFT_BRACE
-  | RIGHT_BRACE
-  | LPAREN | RPAREN
-  | WHILE | DO | OD | FOR | REPEAT | UNTIL | RETURN
-  | IF | THEN | ELIF | ELSE | FI
-  | COMMA | MINUS | PLUS | TIMES | DIV
-  | LT | LE | GT | GE | NEQ | EQEQ
-  | PERCENT | LAND | LOR
-  | ASSGN
-  | LOCAL
-  | LENGTH
-  | DOT
-  | FUN
-  | SKIP
-  | SEMICOLON
-  | COLON
-  | BACKTICK
-  | EOF
-
-  type value = [
-    | `Assoc of (string * value) list
-    | `Bool of bool
-    | `Float of float
-    | `Int of int
-    | `List of value list
-    | `Null
-    | `String of string
-  ]
-end
-
 
 open Ostap
 

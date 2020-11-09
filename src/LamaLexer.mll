@@ -1,7 +1,7 @@
 {
 open Lexing
 open LamaMenhir
-open Language.Json
+open MenhirLexemes
 
 exception SyntaxError of string
 

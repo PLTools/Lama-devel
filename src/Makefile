@@ -5,7 +5,7 @@ BENCH_FILE = bench.exe
 OCAMLC = ocamlfind c
 OCAMLOPT = ocamlfind opt
 OCAMLDEP = ocamlfind dep
-SOURCES_HEAD = Language.ml
+SOURCES_HEAD = MenhirLexemes.ml Language.ml
 SOURCES_GENERATED =  LamaMenhir.ml LamaLexer.ml
 SOURCES_TAIL = RunMenhir.ml SM.ml X86.ml
 SOURCES = $(SOURCES_HEAD) $(SOURCES_GENERATED) $(SOURCES_TAIL)
@@ -17,7 +17,7 @@ CAMLP5 = -syntax camlp5o $(OCAMLFIND_PACKAGES)
 PXFLAGS = $(CAMLP5)
 BFLAGS = -rectypes -package GT,re,ostap,benchmark -linkpkg -w -13 -g
 OFLAGS = $(BFLAGS)
-MENHIR_FLAGS = --external-tokens Language.Json --explain
+MENHIR_FLAGS = --external-tokens MenhirLexemes --explain
 #MENHIR_FLAGS += --trace
 
 all: LamaMenhir.ml LamaLexer.ml depend $(TOPFILE).opt $(BENCH_FILE)
@@ -42,7 +42,7 @@ clean:
 	ocamllex $<
 
 LamaMenhir.cmo: LamaMenhir.ml LamaMenhir.cmi Language.cmi Language.cmo
-LamaMenhir.cmx: LamaMenhir.ml LamaMenhir.cmi Language.cmi Language.cmx
+LamaMenhir.cmx: LamaMenhir.ml LamaMenhir.cmi Language.cmi Language.cmx MenhirLexemes.cmi MenhirLexemes.cmo
 RunMenhir.cmx LamaLexer.cmx: LamaMenhir.cmx
 Driver.cmx: LamaMenhir.cmx LamaLexer.cmx
 
