@@ -192,11 +192,9 @@ module Expr =
          IDENT   --- a non-empty identifier a-zA-Z[a-zA-Z0-9_]* as a string
          DECIMAL --- a decimal constant [0-9]+ as a string
     *)
-    ostap (
-      parse:
-        !(Ostap.Util.expr
-          (fun x -> x)
-          (Array.map (fun (a, s) -> a,
+
+    let hack : (_*(_*(_)) list) array  =
+      Array.map (fun (a, s) -> a,
                            List.map  (fun s -> ostap(- $(s)), (fun x y -> Binop (s, x, y))) s
                         )
           [|
@@ -206,7 +204,13 @@ module Expr =
             `Lefta, ["+" ; "-"];
             `Lefta, ["*" ; "/"; "%"];
           |]
-          )
+
+
+    ostap (
+      parse:
+        !(Ostap.Util.expr
+          (fun x -> x)
+          hack
 	     primary);
       primary:
           b:base is:(-"[" i:parse -"]" {`Elem i}
@@ -305,7 +309,9 @@ module Stmt =
           Seq (i, While (c, Seq (b, s)))
         }
       | %"repeat" s:parse %"until" e:!(Expr.parse)  {Repeat (s, e)}
-      | %"return" e:!(Expr.parse)?                  {Return e}
+      | %"return" e:!(Expr.parse)?
+                       {Return e}
+
       | x:IDENT
            s: (is:(-"[" !(Expr.parse) -"]")* ":=" e   :!(Expr.parse) {Assign (x, is, e)}
               | "("  args:!(Util.list0)[Expr.parse] ")" {Call   (x, args)}

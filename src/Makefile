@@ -14,21 +14,21 @@ COMPILE_OBJS_CMX := $(SOURCES:.ml=.cmx)  LamaMenhir.cmx LamaLexer.cmx $(SOURCES_
 LIBS =
 OCAMLFIND_PACKAGES=-package GT.syntax.all,ostap.syntax
 CAMLP5 = -syntax camlp5o $(OCAMLFIND_PACKAGES)
-PXFLAGS = $(CAMLP5)
-BFLAGS = -rectypes -package GT,re,ostap,benchmark -linkpkg -w -13 -g
+#PXFLAGS = $(CAMLP5)
+BFLAGS = -rectypes -package GT,re,ostap,benchmark,angstrom,opal -linkpkg -w -13 -g
 OFLAGS = $(BFLAGS)
 MENHIR_FLAGS = --external-tokens MenhirLexemes --explain
 #MENHIR_FLAGS += --trace
 
 all: LamaMenhir.ml LamaLexer.ml depend $(TOPFILE).opt $(BENCH_FILE)
 
-depend: $(SOURCES)
-	$(OCAMLDEP) $(PXFLAGS) *.ml *.mli > .depend
+#depend: $(SOURCES)
+#	$(OCAMLDEP) $(PXFLAGS) *.ml *.mli > .depend
 
 $(TOPFILE).opt: $(COMPILE_OBJS_CMX) Driver.cmx
 	$(OCAMLOPT) -o $@ $(OFLAGS) $(LIBS:.cma=.cmxa) $(SOURCES:.ml=.cmx) Driver.cmx
 
-$(BENCH_FILE): $(COMPILE_OBJS_CMX) bench.cmx
+$(BENCH_FILE): $(COMPILE_OBJS_CMX) GenParser.cmx LamaAngstrom.cmx LamaOpal.cmx bench.cmx
 	$(OCAMLOPT) -o $@ $(BFLAGS) $(OCAMLFIND_PACKAGES) -package str $(OFLAGS) $^
 
 
@@ -41,10 +41,14 @@ clean:
 %.ml: %.mll
 	ocamllex $<
 
-LamaMenhir.cmo: LamaMenhir.ml LamaMenhir.cmi Language.cmi Language.cmo
+SM.cmx Language.cmx: PXFLAGS += $(CAMLP5)
+#LamaMenhir.cmo: LamaMenhir.ml LamaMenhir.cmi Language.cmi Language.cmo
 LamaMenhir.cmx: LamaMenhir.ml LamaMenhir.cmi Language.cmi Language.cmx MenhirLexemes.cmi MenhirLexemes.cmo
-RunMenhir.cmx LamaLexer.cmx: LamaMenhir.cmx
+RunMenhir.cmx LamaLexer.cmx: LamaMenhir.cmx Language.cmi
+LamaOpal.cmx LamaAngstrom.cmx: Language.cmi GenParser.cmi
+X86.cmx SM.cmx: Language.cmi
 Driver.cmx: LamaMenhir.cmx LamaLexer.cmx
+bench.cmx: LamaOpal.cmx
 
 LamaMenhir.ml: LamaMenhir.mly
 	menhir $(MENHIR_FLAGS) $<
