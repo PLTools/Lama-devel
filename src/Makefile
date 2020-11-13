@@ -28,7 +28,7 @@ all: LamaMenhir.ml LamaLexer.ml depend $(TOPFILE).opt $(BENCH_FILE)
 $(TOPFILE).opt: $(COMPILE_OBJS_CMX) Driver.cmx
 	$(OCAMLOPT) -o $@ $(OFLAGS) $(LIBS:.cma=.cmxa) $(SOURCES:.ml=.cmx) Driver.cmx
 
-$(BENCH_FILE): $(COMPILE_OBJS_CMX) GenParser.cmx LamaAngstrom.cmx LamaOpal.cmx bench.cmx
+$(BENCH_FILE): $(COMPILE_OBJS_CMX) GenParser.cmx  LamaOpal.cmx bench.cmx
 	$(OCAMLOPT) -o $@ $(BFLAGS) $(OCAMLFIND_PACKAGES) -package str $(OFLAGS) $^
 
 

@@ -78,10 +78,10 @@ let bench_file file =
     let (_ : Language.Stmt.t) = wrap (RunMenhir.run_parser ~filename:file) in
     ()
   in
-  let _run_angstrom () =
-    let (_ : Language.Stmt.t) = wrap (LamaAngstrom.run_parser ~filename:file) in
-    ()
-  in
+  (* let _run_angstrom () =
+       let (_ : Language.Stmt.t) = wrap (LamaAngstrom.run_parser ~filename:file) in
+       ()
+     in *)
   let run_opal () =
     let (_ : Language.Stmt.t) = wrap (LamaOpal.run_parser ~filename:file) in
     ()

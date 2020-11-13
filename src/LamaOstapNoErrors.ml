@@ -1,37 +1,43 @@
-(* open Language
+open Language
 open GenParser
 
-module AngImpl = struct
-  open Angstrom
+module OstapImpl = struct
+  open Ostap
+  open Ostap.Combinators
 
   module I = struct
-    type nonrec ('a, 'b) t = 'b t
+    type ('a, 'b) t = ('a, unit, 'b) Ostap.Types.parse
 
-    let ( => ) = ( >>| )
+    let map = map
 
-    let map f x = x >>| f
+    let ( => ) x f = map f x
 
-    let ( >>= ) = ( >>= )
+    let ( >>= ) = seq
 
     let seq = ( >>= )
 
-    let return = return
+    let return x = empty => fun () -> x
 
-    let opt = option
+    let opt p =
+      (* print_endline "opt asked";
+         ( (p => fun x -> Some x) <|> fun s ->
+           print_endline "returnig none";
+           return None s )
+           s *)
+      opt p
 
-    let guard p cond _ = p >>= fun r -> if cond r then return r else fail ""
+    (* let guard p cond _ = p >>= fun r -> if cond r then return r else mzero *)
+    let guard = guard
 
-    (* let guard = guard *)
-
-    let empty : ('t, unit) t = return ()
+    let empty : ('t, unit) t = fun s -> return () s
 
     let many = many
 
-    let alt = ( <|> )
+    let alt a b = alt a b
 
-    let altl = choice
+    let altl l = List.fold_left ( <|> ) (fail None) l
 
-    let spaces = skip_while (fun c -> List.mem c [ '\t'; '\r'; '\n'; ' ' ])
+    let spaces stream = skip_many (one_of [ '\t'; '\r'; '\n'; ' ' ]) stream
 
     let eof : (char, unit) t = fun stream -> (spaces >>= fun _ -> eof ()) stream
 
@@ -45,7 +51,8 @@ module AngImpl = struct
       f >>= fun r ->
       g >>= fun _ -> return r
 
-    let fix = fix
+    let rec fix : (('a, 'b) t -> ('a, 'b) t) -> ('a, 'b) t =
+     fun p stream -> p (fun s -> fix p s) stream
 
     let string s =
       (* let () = print_endline "string called" in *)
@@ -337,4 +344,4 @@ let () =
       failwith (Printf.sprintf "%s %d It had to succeed" __FILE__ __LINE__)
   | `Ok (_, x) ->
       Printf.printf "%s\n" (GT.show Language.Stmt.t x);
-      () *)
+      ()
