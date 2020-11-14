@@ -77,11 +77,6 @@ expr_base:
   | MINUS; e = expr_base { e (* BUG?*) }
   | f = IDENT; LPAREN; args = separated_list(COMMA, expr); RPAREN { Language.Expr.Call (f, args) }
   | f = IDENT         { Language.Expr.Var f }
-  // | f = IDENT; args = plist(expr) {
-  //       match args with
-  //         | [] -> Language.Expr.Var f
-  //         | args ->  Language.Expr.Call (f, args)
-  //       }
   | LBRACK; elems = separated_list(COMMA, expr); RBRACK  { Language.Expr.Array elems }
   ;
 
@@ -98,7 +93,8 @@ stmts: ss = separated_nonempty_list(SEMICOLON,stmt)
 stmt:
   | SKIP { Language.Stmt.Skip }
   | IF; e=expr; THEN; the = stmts;
-    elif = elifs; els = else1?; FI
+    elif=list(ELIF; e = expr; THEN; th = stmts { (e,th) });
+    els=option(ELSE; br = stmts { br }); FI
       {
         let open Language.Stmt in
         If (e, the,
@@ -114,18 +110,8 @@ stmt:
   | REPEAT; s=stmts; UNTIL; e=expr { Language.Stmt.Repeat (s, e) }
   | RETURN; e=expr? { Return e }
   | x = IDENT; LPAREN; args = separated_list(COMMA, expr); RPAREN  { Language.Stmt.Call (x, args) }
-  | x = IDENT; is = indexes; ASSGN; e=expr { Language.Stmt.Assign (x, is, e) }
+  | x = IDENT; is = list(LBRACK; e = expr; RBRACK { e }); ASSGN; e=expr { Language.Stmt.Assign (x, is, e) }
   ;
-
-index:
-  | LBRACK; e = expr; RBRACK { e }
-  ;
-indexes: xs = list(index) { xs }
-  ;
-
-elif1: ELIF; e = expr; THEN; th = stmts { (e,th) (* ???? *) };
-elifs: e = elif1* { e };
-else1: ELSE; br = stmts { br };
 
 arg: a = IDENT  { a };
 locals: LOCAL; locs = separated_list(COMMA, arg) { locs };

@@ -56,7 +56,7 @@ let bench_file file =
         ()
     in
     (* Printf.printf "Calling ostap parser"; *)
-    let ast1 = wrap Language.run_parser in
+    let ast1 = wrap LamaOstapP5.run_parser in
 
     (* Printf.printf "Calling menhir parser\n"; *)
     let ast2 = wrap (RunMenhir.run_parser ~filename:file) in
@@ -71,7 +71,7 @@ let bench_file file =
   in
   Gc.full_major ();
   let run_ostap () =
-    let (_ : Language.Stmt.t) = wrap Language.run_parser in
+    let (_ : Language.Stmt.t) = wrap LamaOstapP5.run_parser in
     ()
   in
   let run_menhir () =

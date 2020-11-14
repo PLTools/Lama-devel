@@ -8,11 +8,6 @@ module OpalImpl = struct
     type ('a, 'b) t = ('a, 'b) Opal.parser
 
     let opt p =
-      (* print_endline "opt asked";
-         ( (p => fun x -> Some x) <|> fun s ->
-           print_endline "returnig none";
-           return None s )
-           s *)
       option None (p => fun x -> Some x)
 
     let guard p cond _ = p >>= fun r -> if cond r then return r else mzero
@@ -35,24 +30,11 @@ module OpalImpl = struct
 
     let ( => ) = ( => )
 
-    let spaces stream =
-      (* Printf.printf "spaces asked when stream %s empty: %s \n"
-         (if stream = LazyStream.Nil then "IS" else "IS NOT")
-         ( match stream with
-         | LazyStream.Cons (c, t) ->
-             Printf.sprintf "('%c'=%d) :: ???" c (Char.code c)
-         | Nil -> "[]" ); *)
-      skip_many (one_of [ '\t'; '\r'; '\n'; ' ' ]) stream
+    let spaces =
+      skip_many (one_of [ '\t'; '\r'; '\n'; ' ' ])
 
     let eof : (char, unit) t =
-     fun stream ->
-      (* Printf.printf "eof asked when stream %s empty: %s \n"
-         (if stream = LazyStream.Nil then "IS" else "IS NOT")
-         ( match stream with
-         | LazyStream.Cons (c, t) ->
-             Printf.sprintf "('%c'=%d) :: ???" c (Char.code c)
-         | Nil -> "[]" ); *)
-      (spaces >>= fun _ -> eof ()) stream
+      (spaces >>= fun _ -> eof ())
 
     let token s stream =
       (* Printf.printf "token '%s' asked\n" s; *)
@@ -67,42 +49,19 @@ module OpalImpl = struct
     let rec fix : (('a, 'b) t -> ('a, 'b) t) -> ('a, 'b) t =
      fun p stream -> p (fun s -> fix p s) stream
 
-    let string s =
-      (* let () = print_endline "string called" in *)
-      ( token "\"" *> many alpha_num <* token "\"" => fun xs ->
-        Printf.sprintf "%S" (implode xs) )
-        s
+    let string =
+      token "\"" *> many alpha_num <* token "\"" => fun xs ->
+      Printf.sprintf "%S" (implode xs)
+
 
     let decimal : (char, int) t =
-     fun stream ->
-      (* let () =
-           print_endline "decimal called";
-           Printf.printf "decimal asked when stream %s empty: %s \n"
-             (if stream = LazyStream.Nil then "IS" else "IS NOT")
-             ( match stream with
-             | LazyStream.Cons (c, t) ->
-                 Printf.sprintf "('%c'=%d) :: ???" c (Char.code c)
-             | Nil -> "[]" )
-         in *)
-      ( many1 digit => fun xs ->
-        List.fold_left
-          (fun acc x -> (acc * 10) + Char.code x - Char.code '0')
-          0 xs )
-        stream
+      many1 digit => fun xs ->
+      List.fold_left
+        (fun acc x -> (acc * 10) + Char.code x - Char.code '0')
+        0 xs
 
     (* parses 'c' *)
     let char s =
-      let () =
-        (* print_endline "char called";
-           Printf.printf "decimal asked when stream %s empty: %s \n"
-             (if s = LazyStream.Nil then "IS" else "IS NOT")
-             ( match s with
-             | LazyStream.Cons (c, t) ->
-                 Printf.sprintf "('%c'=%d) :: ???" c (Char.code c)
-             | Nil -> "[]" ); *)
-        ()
-      in
-
       choice
         [
           Opal.token "'\n'" *> return '\n';
@@ -115,10 +74,7 @@ module OpalImpl = struct
       spaces *> letter >>= fun h ->
       many (alpha_num <|> exactly '_') >>= fun tl -> return (implode (h :: tl))
 
-    let lexeme l =
-      spaces *> token l => fun x ->
-      (* Printf.printf "lexeme %s eaten\n" x; *)
-      x
+    let lexeme l = spaces *> token l
 
     let debug msg stream =
       print_endline msg;
@@ -201,30 +157,19 @@ module Expr (P : PExt) = struct
   let d = { parse; base; primary }
 end
 
-let __ () =
-  let module E = Expr (Helpers (OpalImpl)) in
-  match Opal.parse E.(d.parse d) (Opal.LazyStream.of_string "1+2") with
-  | None -> failwith "It had to succeed"
-  | Some x ->
-      Printf.printf "%s\n" (GT.show Language.Expr.t x);
-      ()
-
-(* let () = Printf.printf "%s %d\n" __FILE__ __LINE__ *)
-
 module Stmt (P : PExt) = struct
   open P
   module E = Expr (P)
 
   type 'a d = { parse : 'a d -> (char, 'a) t; stmt : 'a d -> (char, 'a) t }
 
-  let foldr1_exn f xs =
+  (* let foldr1_exn f xs =
     let rec helper = function
       | [] -> failwith "bad argument"
       | [ x ] -> x
       | x :: xs -> f x (helper xs)
     in
-
-    match xs with [] -> failwith "bad argument" | xs -> helper xs
+    match xs with [] -> failwith "bad argument" | xs -> helper xs *)
 
   let parse d =
     fix @@ fun self ->
@@ -236,7 +181,6 @@ module Stmt (P : PExt) = struct
          | _ -> foldr1_exn (fun s ss -> Stmt.Seq (s, ss)) (h :: ss) ) *)
     alt
       ( d.stmt d >>= fun s ->
-        (* debug "ask;" *>  *)
         lexeme ";" *> d.parse d >>= fun ss -> return (Stmt.Seq (s, ss)) )
       (d.stmt d)
 
@@ -289,20 +233,6 @@ module Stmt (P : PExt) = struct
   let parse = d.parse d
 end
 
-let __ () =
-  let module S = Stmt (Helpers (OpalImpl)) in
-  let func = S.(d.parse d) in
-
-  match
-    Opal.parse func
-      (Opal.LazyStream.of_string
-         "n := read ();\nwhile  do\n\n\n      skip od\n")
-  with
-  | None -> failwith "It had to succeed"
-  | Some x ->
-      Printf.printf "%s\n" (GT.show Language.Stmt.t x);
-      ()
-
 module Definition (P : PExt) = struct
   open P
   module S = Stmt (P)
@@ -317,8 +247,6 @@ module Definition (P : PExt) = struct
     return (name, (args, (match locs with None -> [] | Some l -> l), body))
 end
 
-(* let () = Printf.printf "%s %d\n" __FILE__ __LINE__ *)
-
 let run_parser ~filename contents =
   let parse =
     let module I = Helpers (OpalImpl) in
@@ -332,6 +260,31 @@ let run_parser ~filename contents =
   | None -> `Fail ""
   | Some x -> `Ok x
 
+
+(* **************** Tests ********************************* *)
+let __ () =
+  let module S = Stmt (Helpers (OpalImpl)) in
+  let func = S.(d.parse d) in
+
+  match
+    Opal.parse func
+      (Opal.LazyStream.of_string
+         "n := read ();\nwhile  do\n\n\n      skip od\n")
+  with
+  | None -> failwith "It had to succeed"
+  | Some x ->
+      Printf.printf "%s\n" (GT.show Language.Stmt.t x);
+      ()
+
+
+let __ () =
+  let module E = Expr (Helpers (OpalImpl)) in
+  match Opal.parse E.(d.parse d) (Opal.LazyStream.of_string "1+2") with
+  | None -> failwith "It had to succeed"
+  | Some x ->
+      Printf.printf "%s\n" (GT.show Language.Expr.t x);
+      ()
+
 let () =
   let module I = Helpers (OpalImpl) in
   let open I in
@@ -342,14 +295,14 @@ let () =
       failwith (Printf.sprintf "%s %d It had to succeed" __FILE__ __LINE__)
   | Some _ -> ()
 
-let () =
+let __ () =
   let module S = Stmt (Helpers (OpalImpl)) in
-  let s = "while do skip od" in
+  (* let s = "while do skip od" in
   let s = "repeat skip until 1" in
 
   let s = "while 1 do skip od" in
   let s = "fun f () { if 1 then return fi; } skip" in
-  let s = "if 1 then return fi" in
+  let s = "if 1 then return fi" in *)
   let s = "x := 'a'; skip" in
   (* let s = "if 'a' then skip fi" in *)
   match run_parser ~filename:"" s with
