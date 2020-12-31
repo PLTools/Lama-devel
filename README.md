@@ -27,9 +27,9 @@ Building:
 
 Сравнивались три реализации:
 
-* Старый[https://github.com/Kakadu/ostap/tree/master-very-old] Ostap с отключенной обработкой ошибок
-* Opal[https://github.com/pyrocat101/opal]
-* Menhir[http://gitlab.inria.fr/fpottier/menhir]
+* [Старый](https://github.com/Kakadu/ostap/tree/master-very-old) Ostap с отключенной обработкой ошибок
+* [Opal](https://github.com/pyrocat101/opal)
+* [Menhir](http://gitlab.inria.fr/fpottier/menhir)
 
 Opal не поддерживает человеческие сообщения об ошибках, поэтому в Ostap те были отключены. В Menhir сообщения об
 ошибках так просто отключить нельзя.
